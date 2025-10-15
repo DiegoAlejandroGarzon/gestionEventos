@@ -192,7 +192,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::delete('/coupons/{id}', [CouponController::class, 'destroy'])->name('coupon.delete');
 
     //SELECTS
-    Route::get('/cities/{department}', [CityController::class, 'getCitiesByDepartment']);
+    
 
     //SEATS
     Route::get('ticket-types/{idEvent}/seats', [SeatController::class, 'index'])->name('seats.index');
@@ -202,7 +202,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/seats/upload/{idEvent}', [SeatController::class, 'uploadExcel'])->name('seats.upload');
     Route::get('/get-event-assistants/{ticketTypeId}', [SeatController::class, 'getEventAssistants']);
 });
-
+Route::get('/cities/{department}', [CityController::class, 'getCitiesByDepartment']);
 
 Route::controller(PageController::class)->group(function () {
     Route::get('/dashboard', 'dashboardOverview1')->name('dashboard-overview-1');

@@ -98,12 +98,15 @@
                 @if($eventAssistant?->ticketType)
                     <p><strong>Tipo de Ticket:</strong> {{ $eventAssistant->ticketType->name ?? 'N/A' }}</p>
                     <ul>
-                        @foreach ($eventAssistant->ticketType->features as $feature)
-                            <li>
-                                <strong>{{ $feature->name }}:</strong>
-                                <span>{{ $feature->consumable ? 'Consumible' : 'Acceso' }}</span>
-                            </li>
-                        @endforeach
+                        @if (!empty($eventAssistant?->ticketType?->features))
+							@foreach ($eventAssistant->ticketType->features as $feature)
+								<li>
+									<strong>{{ $feature->name }}:</strong>
+									<span>{{ $feature->consumable ? 'Consumible' : 'Acceso' }}</span>
+								</li>
+							@endforeach
+						@endif
+
                     </ul>
                 @endif
                 <div class="status-alert {{ $eventAssistant->is_paid ? 'bg-success' : ($eventAssistant->totalPayments() == 0 ? 'bg-danger' : 'bg-warning') }}">

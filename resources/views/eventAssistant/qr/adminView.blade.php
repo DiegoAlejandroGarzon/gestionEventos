@@ -85,9 +85,12 @@
             <p><strong>Tipo de Ticket:</strong> {{ $eventAssistant->ticketType->name ?? 'N/A' }}</p>
             <p><strong>Fecha de Registro:</strong> {{ $eventAssistant->created_at->format('d/m/Y') }}</p>
             <p><strong>Código QR:</strong></p>
-            <div class="mt-2">
-                {!! $eventAssistant->qrCode !!}
-            </div>
+            <div class="mt-2 max-w-full overflow-x-auto">
+				<div class="w-full max-w-xs mx-auto">
+					{!! $eventAssistant->qrCode !!}
+				</div>
+			</div>
+
 
             <br>
 
@@ -102,29 +105,29 @@
             <br>
             <h3 class="text-lg font-medium mt-5">Características del Ticket</h3>
             <ul>
-                @if($eventAssistant?->ticketType)
+                @if (!empty($eventAssistant?->ticketType?->features))
 
-                @foreach ($eventAssistant?->ticketType?->features as $feature)
-                    <li>
-                        <strong>{{ $feature->name }}:</strong>
-                        @if ($feature->consumable)
-                        @php
-                            $featureConsumption = App\Models\FeatureConsumption::where('event_assistant_id', $eventAssistant->id)->where('ticket_feature_id', $feature->id)->first()
-                        @endphp
-                            @if (isset($featureConsumption))
-                                    <span class="text-gray-600">Consumido - {{$featureConsumption->consumed_at}}</span>
-                            @else
-                                <form action="{{ route('eventAssistant.consumeFeature', [$eventAssistant->id, $feature->id]) }}" method="POST" class="inline-block">
-                                    @csrf
-                                    @method('PATCH')
-                                    <x-base.button type="submit" variant="success">Consumir</x-base.button>
-                                </form>
-                            @endif
-                        @else
-                            <span class="text-gray-600">No Consumible</span>
-                        @endif
-                    </li>
-                @endforeach
+					@foreach ($eventAssistant?->ticketType?->features as $feature)
+						<li>
+							<strong>{{ $feature->name }}:</strong>
+							@if ($feature->consumable)
+							@php
+								$featureConsumption = App\Models\FeatureConsumption::where('event_assistant_id', $eventAssistant->id)->where('ticket_feature_id', $feature->id)->first()
+							@endphp
+								@if (isset($featureConsumption))
+										<span class="text-gray-600">Consumido - {{$featureConsumption->consumed_at}}</span>
+								@else
+									<form action="{{ route('eventAssistant.consumeFeature', [$eventAssistant->id, $feature->id]) }}" method="POST" class="inline-block">
+										@csrf
+										@method('PATCH')
+										<x-base.button type="submit" variant="success">Consumir</x-base.button>
+									</form>
+								@endif
+							@else
+								<span class="text-gray-600">No Consumible</span>
+							@endif
+						</li>
+					@endforeach
                 @endif
             </ul>
             <br>

@@ -74,9 +74,10 @@
 
             <h2>Su Código QR</h2>
             <div class="qr-code">
-                {!! $eventAssistant->qrCode !!}
+                <img src="data:image/svg+xml;base64,{{ $qrCodeBase64 }}" alt="Código QR" style="max-width: 300px; height: auto;">
             </div>
             <p>Conserve este código QR para ingresar al evento.</p>
+
         </div>
     </div>
 </body>

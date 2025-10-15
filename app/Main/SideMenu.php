@@ -10,6 +10,11 @@ class SideMenu
     public static function menu(): array
     {
         $menu = [
+            'event.findByDocument' => [
+                'icon' => 'search',
+                'route_name' => 'event.findByDocument',
+                'title' => 'Verificar Entrada'
+            ],
             'usuarios' => [
                 'icon' => 'users',
                 'title' => 'Users',

@@ -137,6 +137,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/event/generatePublicLink/{id}', [EventController::class, 'generatePublicLink'])->name('event.generatePublicLink');
     Route::get('/events/{id}/set-registration-parameters', [EventController::class, 'setRegistrationParameters'])->name('events.setRegistrationParameters');
     Route::post('/events/{id}/store-registration-parameters', [EventController::class, 'storeRegistrationParameters'])->name('events.storeRegistrationParameters');
+    Route::get('/event/findByDocument', [EventController::class, 'findByDocument'])->name('event.findByDocument');
+    Route::post('/event/findByDocumentStore', [EventController::class, 'findByDocumentStore'])->name('event.findByDocumentStore');
 
     //ASISTENTS TO EVENT
     Route::get('/assistants/{idEvent}', [EventAssistantController::class, 'index'])->name('eventAssistant.index');
@@ -192,7 +194,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::delete('/coupons/{id}', [CouponController::class, 'destroy'])->name('coupon.delete');
 
     //SELECTS
-    
+
 
     //SEATS
     Route::get('ticket-types/{idEvent}/seats', [SeatController::class, 'index'])->name('seats.index');

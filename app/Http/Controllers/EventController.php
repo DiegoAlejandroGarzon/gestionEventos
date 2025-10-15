@@ -466,4 +466,50 @@ class EventController extends Controller
         }
         return redirect()->route('event.index')->with('success', 'Parámetros de inscripción guardados correctamente.');
     }
+
+    function findByDocument(){
+        return view('event.findByDocument');
+    }
+
+
+    public function findByDocumentStore(Request $request)
+    {
+        $request->validate([
+            'document_number' => 'required|string',
+        ]);
+
+        // Buscar usuario por número de cédula
+        $user = User::where('document_number', $request->document_number)->first();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no encontrado'
+            ]);
+        }
+
+        // Buscar todos los eventos en los que está registrado
+        $assistances = EventAssistant::with('event')
+            ->where('user_id', $user->id)
+            ->get();
+
+        if ($assistances->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encuentra registrado en ningún evento'
+            ]);
+        }
+
+        // Extraer los nombres de los eventos
+        $events = $assistances->map(function ($a) {
+            return $a->event->name ?? 'Evento sin nombre';
+        });
+
+        return response()->json([
+            'success' => true,
+            'user_name' => $user->name ?? 'Sin nombre',
+            'events' => $events,
+        ]);
+    }
+
 }

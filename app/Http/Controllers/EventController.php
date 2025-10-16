@@ -12,6 +12,7 @@ use App\Models\TicketFeatures;
 use App\Models\TicketType;
 use App\Models\User;
 use App\Models\UserEventParameter;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -500,15 +501,58 @@ class EventController extends Controller
             ]);
         }
 
-        // Extraer los nombres de los eventos
-        $events = $assistances->map(function ($a) {
-            return $a->event->name ?? 'Evento sin nombre';
+        // Obtener fecha y hora actual
+        $now = Carbon::now();
+
+        // Información del usuario
+        $userData = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'document_number' => $user->document_number,
+            'phone' => $user->phone ?? null,
+            'age' => $user->age ?? null,
+            'address' => $user->address ?? null,
+            'created_at' => optional($user->created_at)->format('Y-m-d H:i'),
+        ];
+
+        // Información de los eventos con validación de fecha/hora
+        $events = $assistances->map(function ($a) use ($now) {
+            $event = $a->event;
+
+            $eventDate = $event->event_date ? Carbon::parse($event->event_date) : null;
+            $startTime = $event->start_time ? Carbon::parse($event->start_time) : null;
+            $endTime   = $event->end_time ? Carbon::parse($event->end_time) : null;
+
+            $isToday = $eventDate && $eventDate->isSameDay($now);
+            $isWithinTime = $isToday && $startTime && $endTime && $now->between($startTime, $endTime);
+
+            $isActive = $isWithinTime;
+            $statusMessage = $isActive
+                ? '🟢 El evento está activo en este momento.'
+                : ($isToday
+                    ? '🕓 El evento es hoy, pero aún no está en su rango horario.'
+                    : '🔴 Este evento no está activo en la fecha actual.');
+
+            return [
+                'id' => $event->id,
+                'name' => $event->name,
+                'description' => $event->description ?? 'Sin descripción',
+                'date' => $event->event_date ?? 'Fecha no disponible',
+                'place' => $event->address ?? 'Lugar no especificado',
+                'start_time' => $event->start_time ?? 'No especificada',
+                'end_time' => $event->end_time ?? 'No especificada',
+                'created_at' => optional($event->created_at)->format('Y-m-d H:i'),
+                'is_active_now' => $isActive,
+                'status_message' => $statusMessage,
+            ];
         });
 
         return response()->json([
             'success' => true,
-            'user_name' => $user->name ?? 'Sin nombre',
+            'user' => $userData,
             'events' => $events,
+            'checked_at' => $now->format('Y-m-d H:i:s'),
         ]);
     }
 

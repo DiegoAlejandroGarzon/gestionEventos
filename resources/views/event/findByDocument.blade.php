@@ -92,15 +92,50 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                let eventsList = data.events.map(e => `<li class="ml-5 list-disc">${e}</li>`).join('');
+                // Tarjeta de usuario (verde)
+                const userInfo = `
+                    <div class="border rounded-md p-4 mb-4 bg-green-50 border-green-400 text-left shadow-sm">
+                        <h4 class="font-semibold text-green-700 text-lg mb-2">👤 Información del usuario</h4>
+                        <p><strong>Nombre:</strong> ${data.user.name}</p>
+                        <p><strong>Documento:</strong> ${data.user.document_number}</p>
+                        ${data.user.email ? `<p><strong>Correo:</strong> ${data.user.email}</p>` : ''}
+                        ${data.user.phone ? `<p><strong>Teléfono:</strong> ${data.user.phone}</p>` : ''}
+                        ${data.user.address ? `<p><strong>Dirección:</strong> ${data.user.address}</p>` : ''}
+                        ${data.user.age ? `<p><strong>Edad:</strong> ${data.user.age}</p>` : ''}
+                        <p class="text-slate-500 mt-2 text-sm">Verificación realizada: ${data.checked_at}</p>
+                    </div>
+                `;
 
+                // Cartas de eventos con colores según estado
+                let eventsList = data.events.map(e => {
+                    let statusColor = e.is_active_now
+                        ? 'text-green-600 bg-green-50 border-green-400'
+                        : (e.status_message.includes('aún no está')
+                            ? 'text-yellow-600 bg-yellow-50 border-yellow-400'
+                            : 'text-red-600 bg-red-50 border-red-400');
+                    e.is_active_now ? playSound(true) : playSound(false);
+
+                    return `
+                        <div class="border ${statusColor} rounded-md p-4 mb-4 text-left bg-white dark:bg-darkmode-600 shadow-sm transition hover:shadow-md">
+                            <div class="flex justify-between items-center mb-2">
+                                <h5 class="font-semibold text-slate-800 dark:text-slate-200">${e.name}</h5>
+                                <span class="text-sm font-medium ${statusColor} px-3 py-1 rounded-md">${e.status_message}</span>
+                            </div>
+                            <p class="text-slate-600 dark:text-slate-300"><strong>Descripción:</strong> ${e.description}</p>
+                            <p class="text-slate-600 dark:text-slate-300"><strong>Fecha:</strong> ${e.date}</p>
+                            <p class="text-slate-600 dark:text-slate-300"><strong>Hora inicio:</strong> ${e.start_time}</p>
+                            <p class="text-slate-600 dark:text-slate-300"><strong>Hora fin:</strong> ${e.end_time}</p>
+                            <p class="text-slate-600 dark:text-slate-300"><strong>Lugar:</strong> ${e.place}</p>
+                        </div>
+                    `;
+                }).join('');
+
+                // Mostrar en el contenedor
                 showAlert(
                     'success',
                     'alert-triangle',
-                    `<strong>${data.user_name}</strong> está registrada en los siguientes eventos:<ul class="mt-2 text-left">${eventsList}</ul>`
+                    `${userInfo}<h4 class="font-semibold mb-3 text-left text-slate-700">🎟️ Eventos registrados:</h4>${eventsList}`
                 );
-
-                playSound(true);
             } else {
                 showAlert('danger', 'alert-octagon', `❌ ${data.message}`);
                 playSound(false);

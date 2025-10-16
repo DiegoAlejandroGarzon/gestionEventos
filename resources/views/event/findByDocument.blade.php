@@ -12,14 +12,17 @@
     <div class="row justify-content-center mb-4">
         <div class="col-md-6">
             <div class="input-group input-group-lg">
-                <input
-                    type="text"
-                    id="documentInput"
-                    class="form-control text-center"
-                    placeholder="Escanee o escriba el número de cédula..."
-                    autofocus
-                >
-                <button id="searchButton" class="btn btn-primary">Buscar</button>
+                <div class="grid grid-cols-12 gap-2">
+                    <div class="col-span-9">
+                        <label data-tw-merge for="documentInput" class="inline-block mb-2 group-[.form-inline]:mb-2 group-[.form-inline]:sm:mb-0 group-[.form-inline]:sm:mr-5 group-[.form-inline]:sm:text-right">
+                            Numero de documento
+                        </label>
+                        <input data-tw-merge id="documentInput" type="text" placeholder="Escanee o escriba el número de cédula..." class="disabled:bg-slate-100 disabled:cursor-not-allowed dark:disabled:bg-darkmode-800/50 dark:disabled:border-transparent [&amp;[readonly]]:bg-slate-100 [&amp;[readonly]]:cursor-not-allowed [&amp;[readonly]]:dark:bg-darkmode-800/50 [&amp;[readonly]]:dark:border-transparent transition duration-200 ease-in-out w-full text-sm border-slate-200 shadow-sm rounded-md placeholder:text-slate-400/90 focus:ring-4 focus:ring-green-500 focus:ring-opacity-20 focus:border-primary focus:border-opacity-40 dark:bg-darkmode-800 dark:border-transparent dark:focus:ring-slate-700 dark:focus:ring-opacity-50 dark:placeholder:text-slate-500/80 group-[.form-inline]:flex-1 group-[.input-group]:rounded-none group-[.input-group]:[&amp;:not(:first-child)]:border-l-transparent group-[.input-group]:first:rounded-l group-[.input-group]:last:rounded-r group-[.input-group]:z-10" />
+                    </div>
+                    <div class="mt-5 sm:ml-20 sm:pl-5 col-span-3">
+                        <button data-tw-merge class="transition duration-200 border shadow-sm inline-flex items-center justify-center py-2 px-3 rounded-md font-medium cursor-pointer focus:ring-4 focus:ring-primary focus:ring-opacity-20 focus-visible:outline-none dark:focus:ring-slate-700 dark:focus:ring-opacity-50 [&amp;:hover:not(:disabled)]:bg-opacity-90 [&amp;:hover:not(:disabled)]:border-opacity-90 [&amp;:not(button)]:text-center disabled:opacity-70 disabled:cursor-not-allowed bg-primary border-primary text-white dark:border-primary" id="searchButton">Buscar</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -37,6 +40,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const resultDiv = document.getElementById('resultContainer');
     const button = document.getElementById('searchButton');
 
+    input.addEventListener('focus', function () {
+        input.classList.remove('bg-slate-200');
+        input.classList.add('bg-green-100');
+    });
+
+    input.addEventListener('blur', function () {
+        input.classList.remove('bg-green-100');
+        input.classList.add('bg-slate-200');
+    });
     // Función para mostrar alertas con tu estilo
     function showAlert(type, icon, message) {
         const alertHTML = `

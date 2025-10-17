@@ -13,7 +13,7 @@
         <div class="col-md-6">
             <div class="input-group input-group-lg">
                 <div class="grid grid-cols-12 gap-2">
-                    <div class="col-span-9">
+                    <div class="col-span-12">
                         <label data-tw-merge for="documentInput" class="inline-block mb-2 group-[.form-inline]:mb-2 group-[.form-inline]:sm:mb-0 group-[.form-inline]:sm:mr-5 group-[.form-inline]:sm:text-right">
                             Numero de documento
                         </label>
@@ -89,17 +89,24 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Tarjeta de usuario (verde)
+                let firstEvent = data.events[0];
+                let statusColor = firstEvent.is_active_now
+                    ? 'text-green-600 border-green-400 bg-green-50'
+                    : (firstEvent.status_message.includes('aún no está')
+                        ? 'text-yellow-600 border-yellow-400 bg-yellow-50'
+                        : 'text-red-600 border-red-400 bg-red-50');
+
+                // Tarjeta de usuario con el mismo color de estado
                 const userInfo = `
-                    <div class="border rounded-md p-4 mb-4 bg-green-50 border-green-400 text-left shadow-sm w-full">
-                        <h4 class="font-semibold text-green-700 text-lg mb-2">👤 Información del usuario</h4>
+                    <div class="border rounded-md p-4 mb-4 ${statusColor} text-left shadow-sm w-full transition">
+                        <h4 class="font-semibold text-lg mb-2">👤 Información del usuario</h4>
                         <p class="text-sm"><strong>Nombre:</strong> ${data.user.name}</p>
                         <p class="text-sm"><strong>Documento:</strong> ${data.user.document_number}</p>
                         ${data.user.email ? `<p class="text-sm"><strong>Correo:</strong> ${data.user.email}</p>` : ''}
                         ${data.user.phone ? `<p class="text-sm"><strong>Teléfono:</strong> ${data.user.phone}</p>` : ''}
                         ${data.user.address ? `<p class="text-sm"><strong>Dirección:</strong> ${data.user.address}</p>` : ''}
                         ${data.user.age ? `<p class="text-sm"><strong>Edad:</strong> ${data.user.age}</p>` : ''}
-                        <p class="text-slate-500 mt-2 text-xs">Verificación: ${data.checked_at}</p>
+                        <p class="mt-2 text-xs text-slate-700 dark:text-slate-400"><strong>Verificación:</strong> ${data.checked_at}</p>
                     </div>
                 `;
 
@@ -148,8 +155,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 playSound(false);
             }
 
-            input.value = '';
-            input.focus();
+            setTimeout(() => {
+                input.value = '';
+                input.focus();
+            }, 300);
         })
         .catch(error => {
             console.error(error);

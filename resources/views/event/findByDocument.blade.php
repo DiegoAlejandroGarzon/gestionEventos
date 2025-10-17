@@ -19,16 +19,13 @@
                         </label>
                         <input data-tw-merge id="documentInput" type="text" placeholder="Escanee o escriba el número de cédula..." class="disabled:bg-slate-100 disabled:cursor-not-allowed dark:disabled:bg-darkmode-800/50 dark:disabled:border-transparent [&amp;[readonly]]:bg-slate-100 [&amp;[readonly]]:cursor-not-allowed [&amp;[readonly]]:dark:bg-darkmode-800/50 [&amp;[readonly]]:dark:border-transparent transition duration-200 ease-in-out w-full text-sm border-slate-200 shadow-sm rounded-md placeholder:text-slate-400/90 focus:ring-4 focus:ring-green-500 focus:ring-opacity-20 focus:border-primary focus:border-opacity-40 dark:bg-darkmode-800 dark:border-transparent dark:focus:ring-slate-700 dark:focus:ring-opacity-50 dark:placeholder:text-slate-500/80 group-[.form-inline]:flex-1 group-[.input-group]:rounded-none group-[.input-group]:[&amp;:not(:first-child)]:border-l-transparent group-[.input-group]:first:rounded-l group-[.input-group]:last:rounded-r group-[.input-group]:z-10" />
                     </div>
-                    <div class="mt-5 sm:ml-20 sm:pl-5 col-span-3">
-                        <button data-tw-merge class="transition duration-200 border shadow-sm inline-flex items-center justify-center py-2 px-3 rounded-md font-medium cursor-pointer focus:ring-4 focus:ring-primary focus:ring-opacity-20 focus-visible:outline-none dark:focus:ring-slate-700 dark:focus:ring-opacity-50 [&amp;:hover:not(:disabled)]:bg-opacity-90 [&amp;:hover:not(:disabled)]:border-opacity-90 [&amp;:not(button)]:text-center disabled:opacity-70 disabled:cursor-not-allowed bg-primary border-primary text-white dark:border-primary" id="searchButton">Buscar</button>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     {{-- Contenedor del resultado --}}
-    <div id="resultContainer" class="text-center mt-4"></div>
+    <div id="resultContainer" class="mt-4 px-3 sm:px-0 w-full max-w-4xl mx-auto"></div>
 </div>
 
 <!-- en resources/views/layouts/app.blade.php o tu layout principal -->
@@ -94,48 +91,58 @@ document.addEventListener('DOMContentLoaded', function () {
             if (data.success) {
                 // Tarjeta de usuario (verde)
                 const userInfo = `
-                    <div class="border rounded-md p-4 mb-4 bg-green-50 border-green-400 text-left shadow-sm">
+                    <div class="border rounded-md p-4 mb-4 bg-green-50 border-green-400 text-left shadow-sm w-full">
                         <h4 class="font-semibold text-green-700 text-lg mb-2">👤 Información del usuario</h4>
-                        <p><strong>Nombre:</strong> ${data.user.name}</p>
-                        <p><strong>Documento:</strong> ${data.user.document_number}</p>
-                        ${data.user.email ? `<p><strong>Correo:</strong> ${data.user.email}</p>` : ''}
-                        ${data.user.phone ? `<p><strong>Teléfono:</strong> ${data.user.phone}</p>` : ''}
-                        ${data.user.address ? `<p><strong>Dirección:</strong> ${data.user.address}</p>` : ''}
-                        ${data.user.age ? `<p><strong>Edad:</strong> ${data.user.age}</p>` : ''}
-                        <p class="text-slate-500 mt-2 text-sm">Verificación realizada: ${data.checked_at}</p>
+                        <p class="text-sm"><strong>Nombre:</strong> ${data.user.name}</p>
+                        <p class="text-sm"><strong>Documento:</strong> ${data.user.document_number}</p>
+                        ${data.user.email ? `<p class="text-sm"><strong>Correo:</strong> ${data.user.email}</p>` : ''}
+                        ${data.user.phone ? `<p class="text-sm"><strong>Teléfono:</strong> ${data.user.phone}</p>` : ''}
+                        ${data.user.address ? `<p class="text-sm"><strong>Dirección:</strong> ${data.user.address}</p>` : ''}
+                        ${data.user.age ? `<p class="text-sm"><strong>Edad:</strong> ${data.user.age}</p>` : ''}
+                        <p class="text-slate-500 mt-2 text-xs">Verificación: ${data.checked_at}</p>
                     </div>
                 `;
 
-                // Cartas de eventos con colores según estado
+                // Cartas de eventos con clases responsivas y layout móvil optimizado
                 let eventsList = data.events.map(e => {
                     let statusColor = e.is_active_now
-                        ? 'text-green-600 bg-green-50 border-green-400'
+                        ? 'text-green-600 border-green-400'
                         : (e.status_message.includes('aún no está')
-                            ? 'text-yellow-600 bg-yellow-50 border-yellow-400'
-                            : 'text-red-600 bg-red-50 border-red-400');
-                    e.is_active_now ? playSound(true) : playSound(false);
+                            ? 'text-yellow-600 border-yellow-400'
+                            : 'text-red-600 border-red-400');
 
                     return `
-                        <div class="border ${statusColor} rounded-md p-4 mb-4 text-left bg-white dark:bg-darkmode-600 shadow-sm transition hover:shadow-md">
-                            <div class="flex justify-between items-center mb-2">
-                                <h5 class="font-semibold text-slate-800 dark:text-slate-200">${e.name}</h5>
-                                <span class="text-sm font-medium ${statusColor} px-3 py-1 rounded-md">${e.status_message}</span>
+                        <article class="w-full bg-white dark:bg-darkmode-600 border ${statusColor} rounded-md p-4 mb-4 shadow-sm flex flex-col sm:flex-row gap-3">
+                            <div class="flex-none w-full sm:w-1/3">
+                                <h5 class="font-semibold text-slate-800 dark:text-slate-200 text-base">${e.name}</h5>
+                                <p class="text-xs mt-1 ${statusColor} font-medium">${e.status_message}</p>
                             </div>
-                            <p class="text-slate-600 dark:text-slate-300"><strong>Descripción:</strong> ${e.description}</p>
-                            <p class="text-slate-600 dark:text-slate-300"><strong>Fecha:</strong> ${e.date}</p>
-                            <p class="text-slate-600 dark:text-slate-300"><strong>Hora inicio:</strong> ${e.start_time}</p>
-                            <p class="text-slate-600 dark:text-slate-300"><strong>Hora fin:</strong> ${e.end_time}</p>
-                            <p class="text-slate-600 dark:text-slate-300"><strong>Lugar:</strong> ${e.place}</p>
-                        </div>
+                            <div class="flex-1 text-sm text-slate-600 dark:text-slate-300">
+                                <p class="mb-1"><strong>Fecha:</strong> ${e.date}</p>
+                                <p class="mb-1"><strong>Hora:</strong> ${e.start_time} — ${e.end_time}</p>
+                                <p class="mb-0"><strong>Lugar:</strong> ${e.place}</p>
+                            </div>
+                        </article>
                     `;
                 }).join('');
 
-                // Mostrar en el contenedor
-                showAlert(
-                    'success',
-                    'alert-triangle',
-                    `${userInfo}<h4 class="font-semibold mb-3 text-left text-slate-700">🎟️ Eventos registrados:</h4>${eventsList}`
-                );
+                // Layout final: eventos primero (en una columna en móvil, dos en pantallas mayores si quieres)
+                const eventsWrapper = `<div class="grid grid-cols-1 gap-4">${eventsList}</div>`;
+
+                // Render: eventos arriba, info usuario abajo
+                resultDiv.innerHTML = `
+                    <div class="mb-3">${eventsWrapper}</div>
+                    <div>${userInfo}</div>
+                `;
+
+                // render lucide icons inside resultDiv if available
+                if (typeof window.lucide !== 'undefined' && typeof window.lucide.createIcons === 'function') {
+                    window.lucide.createIcons();
+                }
+
+                // play sound once if any event is active
+                const anyActive = data.events.some(ev => ev.is_active_now);
+                playSound(anyActive);
             } else {
                 showAlert('danger', 'alert-octagon', `❌ ${data.message}`);
                 playSound(false);
@@ -151,16 +158,21 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Permitir Enter (pistola o teclado)
-    input.addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            searchByDocument();
+    // Detección automática: cuando se detecta un número completo, se lanza la búsqueda
+    let searchTimeout;
+
+    input.addEventListener('input', function () {
+        clearTimeout(searchTimeout);
+        const value = input.value.trim();
+
+        // Si tiene más de 5 caracteres, lanza búsqueda automáticamente (ajusta si deseas)
+        if (value.length >= 5) {
+            searchTimeout = setTimeout(() => {
+                searchByDocument();
+            }, 600); // espera 0.6s después de dejar de escribir o escanear
         }
     });
 
-    // Botón manual
-    button.addEventListener('click', searchByDocument);
 
     // 🔊 Sonidos (éxito/error)
     function playSound(success) {

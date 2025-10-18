@@ -280,3 +280,6 @@ Route::controller(PageController::class)->group(function () {
     Route::get('slider-page', 'slider')->name('slider');
     Route::get('image-zoom-page', 'imageZoom')->name('image-zoom');
 });
+
+// webhook whatsapp
+Route::any('app/chats/management/create/webhook', [createManagementController::class, 'handleWeBHook']);

@@ -12,7 +12,10 @@ class TicketType extends Model
         'event_id',
         'name',
         'price',
-        'capacity'
+        'capacity',
+        'entry_date',
+        'entry_start_time',
+        'entry_end_time',
     ];
 
     // Relación con el evento

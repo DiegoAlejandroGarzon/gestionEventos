@@ -68,6 +68,9 @@ class EventController extends Controller
             'ticketTypes.*.capacity' => 'required|integer|min:1',
             'ticketTypes.*.price' => 'required|numeric',
             'ticketTypes.*.features' => 'required|array|exists:ticket_features,id',
+            'ticketTypes.*.date_entry' => 'nullable|date',
+            'ticketTypes.*.entry_start_time' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
+            'ticketTypes.*.entry_end_time' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/', 'after:ticketTypes.*.entry_start_time'],
             'additionalFields.*.label' => 'required|string|max:255',
             'additionalFields.*.value' => 'required|string|max:255',
         ]);
@@ -110,6 +113,9 @@ class EventController extends Controller
                     'name' => $ticketTypeData['name'],
                     'capacity' => $ticketTypeData['capacity'],
                     'price' => $ticketTypeData['price'],
+                    'entry_date' => $ticketData['entry_date'] ?? null,
+                    'entry_start_time' => $ticketData['entry_start_time'] ?? null,
+                    'entry_end_time' => $ticketData['entry_end_time'] ?? null,
                 ]);
 
                 // Asignar características
@@ -121,10 +127,19 @@ class EventController extends Controller
     }
 
     public function edit($id){
-        $event = Event::find($id);
+        $event = Event::with('ticketTypes.features')->findOrFail($id);
         $departments = Departament::all();
         $features = TicketFeatures::all();
-        return view('event.update', compact(['event', 'departments', 'features']));
+
+        $event = Event::with('ticketTypes.features')->findOrFail($id);
+        $selectedFeaturesByIndex = [];
+
+        foreach ($event->ticketTypes as $i => $tt) {
+            $selectedFeaturesByIndex[$i] = $tt->features ? $tt->features->pluck('id')->toArray() : [];
+        }
+
+
+        return view('event.update', compact(['event', 'departments', 'features', 'selectedFeaturesByIndex']));
     }
 
     public function update(Request $request){
@@ -146,6 +161,9 @@ class EventController extends Controller
                 'ticketTypes.*.name' => 'required|string|max:255',
                 'ticketTypes.*.capacity' => 'required|integer|min:1',
                 'ticketTypes.*.price' => 'required|numeric',
+                'ticketTypes.*.date_entry' => 'nullable|date',
+                'ticketTypes.*.entry_start_time' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
+                'ticketTypes.*.entry_end_time' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/', 'after:ticketTypes.*.entry_start_time'],
                 'address' => 'required|max:255',
                 'status' => 'required',
             ]);
@@ -192,19 +210,55 @@ class EventController extends Controller
             });
 
             // Actualizar o crear nuevos ticketTypes
-            if($request->ticketTypes){
-                foreach ($request->ticketTypes as $ticketTypeData) {
-                $ticketType = TicketType::updateOrCreate(
-                    ['id' => $ticketTypeData['id'] ?? null, 'event_id' => $event->id],
-                    [
-                        'name' => $ticketTypeData['name'],
-                        'capacity' => $ticketTypeData['capacity'],
-                        'price' => $ticketTypeData['price'],
-                    ]
-                );
+            if ($request->has('ticketTypes')) {
+                foreach ($request->ticketTypes as $ticketData) {
+                    // Verificar si ya existe (por id)
+                    if (isset($ticketData['id'])) {
+                        $ticket = TicketType::find($ticketData['id']);
+                        if ($ticket) {
+                            // Validar rango de fecha_ingreso
+                            if (
+                                isset($ticketData['date_entry']) &&
+                                ($ticketData['date_entry'] < $event->event_date || $ticketData['date_entry'] > $event->event_date_end)
+                            ) {
+                                return back()->withErrors([
+                                    "ticketTypes.{$ticketData['id']}.date_entry" =>
+                                        "La fecha de ingreso debe estar dentro del rango del evento ({$event->event_date} a {$event->event_date_end})."
+                                ])->withInput();
+                            }
 
-                    // Asignar características
-                    $ticketType->features()->sync($ticketTypeData['features']);
+                        // dd($ticketData['entry_start_time']);
+                            $ticket->update([
+                                'name' => $ticketData['name'],
+                                'capacity' => $ticketData['capacity'],
+                                'price' => $ticketData['price'],
+                                'entry_date' => $ticketData['entry_date'] ?? null,
+                                'entry_start_time' => $ticketData['entry_start_time'] ?? null,
+                                'entry_end_time' => $ticketData['entry_end_time'] ?? null,
+                            ]);
+
+                        // dd($ticket);
+                            // Sincronizar características
+                            if (isset($ticketData['features'])) {
+                                $ticket->features()->sync($ticketData['features']);
+                            }
+                        }
+                    } else {
+                        // Crear nuevo tipo de ticket
+                        $newTicket = TicketType::create([
+                            'event_id' => $event->id,
+                            'name' => $ticketData['name'],
+                            'capacity' => $ticketData['capacity'],
+                            'price' => $ticketData['price'],
+                            'entry_date' => $ticketData['entry_date'] ?? null,
+                            'entry_start_time' => $ticketData['entry_start_time'] ?? null,
+                            'entry_end_time' => $ticketData['entry_end_time'] ?? null,
+                        ]);
+
+                        if (isset($ticketData['features'])) {
+                            $newTicket->features()->sync($ticketData['features']);
+                        }
+                    }
                 }
             }
 

@@ -232,6 +232,29 @@
                                         class="form-control w-1/3 mr-2"
                                         value="{{ old('ticketTypes.' . $index . '.price', $ticket->price) }}"
                                     />
+                                    <x-base.form-input
+                                        type="date"
+                                        name="ticketTypes[{{ $index }}][entry_date]"
+                                        class="form-control w-full"
+                                        placeholder="Fecha de ingreso"
+                                        min="{{ $event->event_date }}"
+                                        max="{{ $event->event_date_end }}"
+                                        value="{{ old('ticketTypes.' . $index . '.price', $ticket->entry_date) }}"
+                                    />
+                                    <x-base.form-input
+                                        type="time"
+                                        name="ticketTypes[{{ $index }}][entry_start_time]"
+                                        class="form-control w-full"
+                                        placeholder="Hora inicio ingreso"
+                                        value="{{ old('ticketTypes.' . $index . '.price', $ticket->entry_start_time) }}"
+                                    />
+                                    <x-base.form-input
+                                        type="time"
+                                        name="ticketTypes[{{ $index }}][entry_end_time]"
+                                        class="form-control w-full"
+                                        placeholder="Hora fin ingreso"
+                                        value="{{ old('ticketTypes.' . $index . '.price', $ticket->entry_end_time) }}"
+                                    />
                                     <x-base.tom-select
                                     type="text"
                                     name="ticketTypes[{{ $index }}][features][]"
@@ -241,11 +264,13 @@
                                         multiple
                                     >
 
-                                        @foreach($features as $key => $feature)
-                                        <option value="{{ $feature['id'] }}" {{ in_array($feature['id'], old('features', $event->ticketTypes[$index]->features->pluck('id')->toArray())) ? 'selected' : '' }} >
-                                            {{ $feature['name'] }} {{ $feature->consumable ? '- (CONSUMIBLE)' : '' }}
+                                    @php $selectedFeatures = $selectedFeaturesByIndex[$index] ?? []; @endphp
+
+                                    @foreach($features as $feature)
+                                        <option value="{{ $feature['id'] }}" {{ in_array($feature['id'], old('features', $selectedFeatures)) ? 'selected' : '' }}>
+                                            {{ $feature['name'] }}
                                         </option>
-                                        @endforeach
+                                    @endforeach
                                     </x-base.tom-select>
 
                                     <x-base.button
@@ -496,6 +521,29 @@
                         placeholder="Precio"
                         class="form-control w-full"
                     />
+
+                    <x-base.form-input
+                        type="date"
+                        name="ticketTypes[${ticketIndex}][entry_date]"
+                        placeholder="Fecha de ingreso"
+                        class="form-control w-full sm:w-1/5"
+                        min="${document.getElementById('event_date')?.value}"
+                        max="${document.getElementById('event_date_end')?.value}"
+                    />
+
+                    <x-base.form-input
+                        type="time"
+                        name="ticketTypes[${ticketIndex}][entry_start_time]"
+                        placeholder="Hora inicio ingreso"
+                        class="form-control w-full sm:w-1/6"
+                    />
+
+                    <x-base.form-input
+                        type="time"
+                        name="ticketTypes[${ticketIndex}][entry_end_time]"
+                        placeholder="Hora fin ingreso"
+                        class="form-control w-full sm:w-1/6"
+                    />
                     <select
                         id="${ticketTypeId}_features"
                         name="ticketTypes[${ticketIndex}][features][]"
@@ -606,5 +654,17 @@
                     .catch(error => console.error('Error fetching cities:', error));
             }
         }
+
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.type === 'date' && e.target.name.includes('entry_date')) {
+                const eventStart = document.getElementById('event_date').value;
+                const eventEnd = document.getElementById('event_date_end').value;
+                const selected = e.target.value;
+                if (eventStart && eventEnd && (selected < eventStart || selected > eventEnd)) {
+                    alert('⚠️ La fecha de ingreso debe estar dentro del rango del evento.');
+                    e.target.value = ''; // limpia el campo
+                }
+            }
+        });
     </script>
 @endsection

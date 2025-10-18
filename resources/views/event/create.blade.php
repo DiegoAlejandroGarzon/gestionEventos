@@ -362,34 +362,62 @@
             const container = document.getElementById('ticket-types-container');
             const ticketTypeId = `ticket_type_${ticketTypeIndex}`;
             const fieldHtml = `
-                <div class="flex items-center mt-2" id="${ticketTypeId}_wrapper">
+                <div class="box">
+                <div class="flex flex-wrap gap-2 items-center m-2" id="${ticketTypeId}_wrapper">
                     <x-base.form-input
-                        class="w-full"
+                        class="w-full sm:w-1/4"
                         id="${ticketTypeId}_name"
                         name="ticketTypes[${ticketTypeIndex}][name]"
                         type="text"
                         placeholder="Nombre del Tipo de Entrada"
                     />
+
                     <x-base.form-input
                         id="${ticketTypeId}_capacity"
                         type="number"
                         name="ticketTypes[${ticketTypeIndex}][capacity]"
                         placeholder="Capacidad"
-                        class="form-control w-full"
+                        class="form-control w-full sm:w-1/6"
                     />
+
                     <x-base.form-input
                         id="${ticketTypeId}_price"
                         type="number"
                         step="0.01"
                         name="ticketTypes[${ticketTypeIndex}][price]"
                         placeholder="Precio"
-                        class="form-control w-full"
+                        class="form-control w-full sm:w-1/6"
+                    />
+                    <x-base.form-input
+                        id="${ticketTypeId}_entry_date"
+                        type="date"
+                        name="ticketTypes[${ticketTypeIndex}][entry_date]"
+                        placeholder="Fecha de ingreso"
+                        class="form-control w-full sm:w-1/5"
+                        min="${document.getElementById('event_date')?.value}"
+                        max="${document.getElementById('event_date_end')?.value}"
+                    />
+
+                    <x-base.form-input
+                        id="${ticketTypeId}_entry_start_time"
+                        type="time"
+                        name="ticketTypes[${ticketTypeIndex}][entry_start_time]"
+                        placeholder="Hora inicio ingreso"
+                        class="form-control w-full sm:w-1/6"
+                    />
+
+                    <x-base.form-input
+                        id="${ticketTypeId}_entry_end_time"
+                        type="time"
+                        name="ticketTypes[${ticketTypeIndex}][entry_end_time]"
+                        placeholder="Hora fin ingreso"
+                        class="form-control w-full sm:w-1/6"
                     />
                     <select
                         id="${ticketTypeId}_features"
                         name="ticketTypes[${ticketTypeIndex}][features][]"
                         multiple="multiple"
-                        class="tom-select w-full mt-2"
+                        class="tom-select w-full sm:w-1/4 mt-2"
                     >
                         @foreach($features as $feature)
                             <option value="{{ $feature->id }}" >{{ $feature->name }} {{ $feature->consumable ? '- (CONSUMIBLE)' : '' }}</option>
@@ -403,6 +431,7 @@
                     >
                         Eliminar
                     </x-base.button>
+                </div>
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', fieldHtml);
@@ -469,5 +498,18 @@
             }
         }
         filterCities();
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.type === 'date' && e.target.name.includes('date_entry')) {
+                const eventStart = document.getElementById('event_date').value;
+                const eventEnd = document.getElementById('event_date_end').value;
+                const selected = e.target.value;
+
+                if (eventStart && eventEnd && (selected < eventStart || selected > eventEnd)) {
+                    alert('⚠️ La fecha de ingreso debe estar dentro del rango del evento.');
+                    e.target.value = ''; // limpia el campo
+                }
+            }
+        });
+
     </script>
 @endsection

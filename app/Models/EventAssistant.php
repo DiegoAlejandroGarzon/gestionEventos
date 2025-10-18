@@ -75,4 +75,10 @@ class EventAssistant extends Model
     {
         return $this->hasMany(FeatureConsumption::class, 'event_assistant_id');
     }
+
+    public function minors()
+    {
+        return $this->hasMany(Minor::class);
+    }
+
 }

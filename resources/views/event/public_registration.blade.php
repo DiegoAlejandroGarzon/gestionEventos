@@ -269,6 +269,25 @@
                                 </div>
                             @endforeach
 
+                            <!-- Pregunta sobre menores -->
+                            <div class="mt-6">
+                                <label class="font-semibold text-slate-700">¿Desea inscribir menores de edad?</label>
+                                <div class="flex items-center gap-4 mt-2">
+                                    <label><input type="radio" name="has_minors" value="no" checked> No</label>
+                                    <label><input type="radio" name="has_minors" value="yes"> Sí</label>
+                                </div>
+                            </div>
+
+                            <!-- Cantidad de menores -->
+                            <div id="minor-count-container" class="mt-4 hidden">
+                                <label class="font-semibold text-slate-700">Cantidad de menores (máximo 5)</label>
+                                <input type="number" id="minorCount" name="minor_count" min="1" max="5"
+                                    class="w-24 mt-2 border rounded-md text-center" />
+                            </div>
+
+                            <!-- Campos dinámicos para menores -->
+                            <div id="minorsContainer" class="mt-4 space-y-4"></div>
+
                             <!-- Botón -->
                             <div class="intro-x mt-6 text-center xl:text-left">
                                 <x-base.button class="w-full px-4 py-3 xl:w-32" type="submit" variant="primary">
@@ -383,5 +402,42 @@
                         });
                 }
             }
+
+            // Mostrar opciones según la respuesta
+            document.querySelectorAll('input[name="has_minors"]').forEach(radio => {
+                radio.addEventListener('change', function () {
+                    const show = this.value === 'yes';
+                    document.getElementById('minor-count-container').classList.toggle('hidden', !show);
+                    document.getElementById('minorsContainer').innerHTML = ''; // limpiar campos
+                });
+            });
+
+            // Generar los campos según la cantidad
+            document.getElementById('minorCount').addEventListener('input', function () {
+                const count = Math.min(parseInt(this.value || 0), 5);
+                const container = document.getElementById('minorsContainer');
+                container.innerHTML = '';
+
+                for (let i = 1; i <= count; i++) {
+                    container.insertAdjacentHTML('beforeend', `
+                        <div class="border p-4 rounded-md bg-slate-50">
+                            <h4 class="font-semibold mb-2">Menor ${i}</h4>
+                            <div class="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <x-base.form-label for="minor_name_${i}">Nombre completo</x-base.form-label>
+                                    <x-base.form-input name="minors[${i}][full_name]" type="text"
+                                        placeholder="Nombre del menor" required />
+                                </div>
+                                <div>
+                                    <x-base.form-label for="minor_age_${i}">Edad</x-base.form-label>
+                                    <x-base.form-input name="minors[${i}][age]" type="number" min="1" max="17"
+                                        placeholder="Edad" required />
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                }
+            });
+
         </script>
     @endsection

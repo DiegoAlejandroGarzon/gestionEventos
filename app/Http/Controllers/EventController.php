@@ -7,6 +7,7 @@ use App\Models\Coupon;
 use App\Models\Departament;
 use App\Models\Event;
 use App\Models\EventAssistant;
+use App\Models\Minor;
 use App\Models\Seat;
 use App\Models\TicketFeatures;
 use App\Models\TicketType;
@@ -305,43 +306,41 @@ class EventController extends Controller
             $coupon = Coupon::where('numeric_code', $request->courtesy_code)
                 ->where('event_id', $event->id)
                 ->where('is_consumed', false)
-                ->with('ticketType') // Asegura la relación con ticketType
+                ->with('ticketType')
                 ->first();
+
             if (!$coupon) {
-                return redirect()->back()->with('error', 'Inscripción NO exitosa. CUPON INVALIDO');
+                return redirect()->back()->with('error', 'Inscripción NO exitosa. CUPÓN INVÁLIDO.');
             }
         }
 
-        // Verificar si el tipo de ticket tiene asientos registrados
+        // 🔹 Verificar si el tipo de ticket tiene asientos registrados
         $ticketTypeSeats = Seat::where('ticket_type_id', $request->id_ticket)->exists();
 
-        // Si el tipo de ticket tiene asientos y no se envió un seat_id en el request, mostrar error
         if ($ticketTypeSeats && !$request->seat_id) {
             return redirect()->back()->with('error', 'Es obligatorio asignar una silla para este tipo de ticket.');
         }
 
-        // Si el seat_id está presente en el request, hacer las validaciones adicionales
+        // 🔹 Validaciones del asiento (si aplica)
         if ($request->seat_id) {
             $seat = Seat::find($request->seat_id);
 
-            // Validar si la silla ya está asignada
             if ($seat->is_assigned) {
                 return redirect()->back()->with('error', 'Inscripción NO exitosa. SILLA ASIGNADA');
             }
 
-            // Validar si la silla coincide con el tipo de ticket seleccionado
             if ($seat->ticket_type_id != $request->id_ticket) {
-                return redirect()->back()->with('error', 'Inscripción NO exitosa. SILLA NO COINCIDE CON TIPO DE TICKET');
+                return redirect()->back()->with('error', 'Inscripción NO exitosa. SILLA NO COINCIDE CON EL TIPO DE TICKET');
             }
         }
 
-        // Verificar si el evento ya ha finalizado
+        // 🔹 Verificar si el evento ha finalizado
         $eventAssistantController = new EventAssistantController();
         if ($eventAssistantController->eventoFinalizado($event->id)) {
             return redirect()->back()->with('error', 'No se puede realizar esta acción porque el evento ya ha sido finalizado.');
         }
 
-        // Construir reglas de validación dinámicas basadas en los parámetros de registro del evento
+        // 🔹 Reglas dinámicas de validación
         $registrationParameters = json_decode($event->registration_parameters, true) ?? [];
         $validationRules = [];
 
@@ -372,75 +371,112 @@ class EventController extends Controller
             }
         }
 
-        // Validar el request
         $validatedData = $request->validate($validationRules);
-        $user = null;
-        if ($request->has('email')) {
-            // Verificar si el usuario ya existe por correo
-            $user = User::where('email', $request->email)
+
+        // Crear o actualizar usuario
+        $user = User::where('email', $request->email)
+            ->orWhere('document_number', $request->document_number)
             ->first();
-        }elseif($request->has('document_number')){
-            // Verificar si el usuario ya existe por número de documento
-            $user = User::where('document_number', $request->document_number)
-            ->first();
-        }
+
         if ($user) {
-            // Si el usuario existe, actualizar su información
             $user->update($validatedData);
         } else {
-            // Si no existe, crearlo
             $user = User::create(array_merge($validatedData, ['status' => false]));
         }
-        $userName = null;
-        if($user->name != null){
-            $userName = $user->name." ".$user->lastname;
-        }
+
+        $userName = $user->name ? $user->name . " " . $user->lastname : null;
+
+        // Asignar rol si no lo tiene
         if (!$user->hasRole('assistant')) {
-            $assistantRole = Role::firstOrCreate(['name' => 'assistant']); // Crear el rol si no existe
+            $assistantRole = Role::firstOrCreate(['name' => 'assistant']);
             $user->assignRole($assistantRole);
         }
 
-        // Verificar si el usuario ya está inscrito en el evento
+        // Verificar si ya está inscrito
         $eventAssistant = EventAssistant::where('event_id', $event->id)
             ->where('user_id', $user->id)
             ->first();
 
         if ($eventAssistant) {
-            // Si ya está inscrito, mostrar mensaje de error
             return redirect()->back()->with('error', 'El usuario ya está inscrito en este evento.');
-        } else {
-            // Si no está inscrito, crear el registro en `event_assistant`
-            $guardianId = $request->input('guardian_id') ?? null;
-            $eventAssistant = EventAssistant::create([
-                'event_id' => $event->id,
-                'user_id' => $user->id,
-                'ticket_type_id' => $request['id_ticket'] ?? null,
-                'has_entered' => false,
-                'guardian_id' => $guardianId,
-            ]);
+        }
 
-            // Si hay un código de cortesía, marcarlo como consumido y asignarlo al asistente
-            if (isset($coupon)) {
-                $coupon->is_consumed = true;
-                $coupon->event_assistant_id = $eventAssistant->id;
-                $coupon->save();
-                $eventAssistant->is_paid = true;
-                $eventAssistant->ticket_type_id = $coupon->ticket_type_id;
-                $eventAssistant->save();
-            }
-            if(isset($seat)){
-                $seat->is_assigned = 1;
-                $seat->event_assistant_id = $eventAssistant->id;
-                $seat->save();
+        // 🔹 Verificar capacidad del tipo de ticket
+        $ticketType = TicketType::find($request->id_ticket);
+
+        if (!$ticketType) {
+            return redirect()->back()->with('error', 'El tipo de entrada seleccionado no es válido.');
+        }
+        // Contar asistentes adultos inscritos en este tipo de ticket
+        if (!auth()->check() || !auth()->user()->hasRole('admin')) {
+            $currentAssistantsCount = EventAssistant::where('event_id', $event->id)
+                ->where('ticket_type_id', $ticketType->id)
+                ->count();
+
+            $currentMinorsCount = Minor::whereIn('event_assistant_id', function ($query) use ($event, $ticketType) {
+                $query->select('id')
+                    ->from('event_assistants')
+                    ->where('event_id', $event->id)
+                    ->where('ticket_type_id', $ticketType->id);
+            })->count();
+
+            $totalOccupied = $currentAssistantsCount + $currentMinorsCount;
+            $newMinorsCount = $request->has('minors') ? count($request->minors) : 0;
+            $totalNew = 1 + $newMinorsCount; // 1 adulto + menores
+
+            if (($totalOccupied + $totalNew) > $ticketType->capacity) {
+                return redirect()->back()->with('error', 'No se puede completar la inscripción: se ha alcanzado el límite de capacidad para este tipo de entrada.');
             }
         }
 
-        // Obtener los parámetros adicionales definidos para el evento
+        // 🔹 Crear registro EventAssistant
+        $guardianId = $request->input('guardian_id') ?? null;
+        $eventAssistant = EventAssistant::create([
+            'event_id' => $event->id,
+            'user_id' => $user->id,
+            'ticket_type_id' => $ticketType->id,
+            'has_entered' => false,
+            'guardian_id' => $guardianId,
+        ]);
+
+        // 🔹 Aplicar cupón de cortesía si existe
+        if (isset($coupon)) {
+            $coupon->update([
+                'is_consumed' => true,
+                'event_assistant_id' => $eventAssistant->id,
+            ]);
+
+            $eventAssistant->update([
+                'is_paid' => true,
+                'ticket_type_id' => $coupon->ticket_type_id,
+            ]);
+        }
+
+        // 🔹 Asignar silla (si aplica)
+        if (isset($seat)) {
+            $seat->update([
+                'is_assigned' => 1,
+                'event_assistant_id' => $eventAssistant->id,
+            ]);
+        }
+
+        // 🔹 Registrar menores (si existen)
+        if ($request->has('minors')) {
+            foreach ($request->minors as $minorData) {
+                Minor::create([
+                    'full_name' => $minorData['full_name'],
+                    'age' => $minorData['age'],
+                    'event_assistant_id' => $eventAssistant->id,
+                ]);
+            }
+        }
+
+        // 🔹 Guardar parámetros adicionales definidos
         $definedParameters = AdditionalParameter::where('event_id', $event->id)->get();
         $userFillableColumns = (new User())->getFillable();
 
-        // Detectar y almacenar parámetros adicionales enviados en el registro
-        $additionalParameters = $request->except(array_merge(['_token'], $userFillableColumns)); // Excluir columnas del modelo User
+        $additionalParameters = $request->except(array_merge(['_token'], $userFillableColumns));
+
         foreach ($definedParameters as $definedParameter) {
             if (isset($additionalParameters[$definedParameter->name])) {
                 UserEventParameter::create([
@@ -452,7 +488,7 @@ class EventController extends Controller
             }
         }
 
-        // Generar el código QR y devolver la vista de registro exitoso
+        // 🔹 Mostrar vista de confirmación
         $qrcode = $eventAssistant->qrCode;
         $idEventAssistant = $eventAssistant->id;
         $message = 'Inscripción exitosa.';

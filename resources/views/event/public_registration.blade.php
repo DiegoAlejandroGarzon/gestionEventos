@@ -85,18 +85,33 @@
                                 <div id="courtesy_code_message" class="text-red-500 text-sm mt-1"></div>
                             </div>
 
+                            <!-- Selector de Fecha -->
+                            <div class="mt-3">
+                                <x-base.form-label for="filter_date">Seleccionar Fecha</x-base.form-label>
+                                <x-base.tom-select id="filter_date" name="filter_date" onchange="filterTicketsByDate()" class="w-full">
+                                    <option value="">Seleccione una fecha</option>
+                                    @php
+                                        $availableDates = collect($ticketTypes)
+                                            ->pluck('entry_date')
+                                            ->filter()
+                                            ->unique()
+                                            ->sort();
+                                    @endphp
+                                    @foreach ($availableDates as $date)
+                                        <option value="{{ $date }}">
+                                            {{ \Carbon\Carbon::parse($date)->translatedFormat('l, d F Y') }}
+                                        </option>
+                                    @endforeach
+                                </x-base.tom-select>
+                            </div>
+
+
                             <!-- Selector de Ticket -->
                             <div class="mt-3">
                                 <x-base.form-label for="id_ticket">Ticket</x-base.form-label>
                                 <x-base.tom-select class="w-full {{ $errors->has('id_ticket') ? 'border-red-500' : '' }}"
-                                    id="id_ticket" name="id_ticket" onchange="filterCities()">
-                                    <option></option>
-                                    @foreach ($ticketTypes as $ticket)
-                                        <option value="{{ $ticket->id }}"
-                                            {{ old('id_ticket') == $ticket->id ? 'selected' : '' }}>
-                                            {{ $ticket->name }} - ${{ number_format($ticket->price, 0, '', '.') }}
-                                        </option>
-                                    @endforeach
+                                    id="id_ticket" name="id_ticket">
+                                    <option value="">Seleccione una fecha primero</option>
                                 </x-base.tom-select>
                                 @error('id_ticket')
                                     <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
@@ -440,4 +455,88 @@
             });
 
         </script>
+        @php
+            $ticketsJs = [];
+            foreach ($ticketTypes as $ticket) {
+                // Normaliza fecha (YYYY-MM-DD) y horas (HH:MM)
+                $entryDate = null;
+                if (!empty($ticket->entry_date)) {
+                    try {
+                        $entryDate = \Carbon\Carbon::parse($ticket->entry_date)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        $entryDate = $ticket->entry_date;
+                    }
+                }
+
+                $startTime = null;
+                if (!empty($ticket->entry_start_time)) {
+                    try {
+                        $startTime = \Carbon\Carbon::parse($ticket->entry_start_time)->format('H:i');
+                    } catch (\Exception $e) {
+                        $startTime = $ticket->entry_start_time;
+                    }
+                }
+
+                $endTime = null;
+                if (!empty($ticket->entry_end_time)) {
+                    try {
+                        $endTime = \Carbon\Carbon::parse($ticket->entry_end_time)->format('H:i');
+                    } catch (\Exception $e) {
+                        $endTime = $ticket->entry_end_time;
+                    }
+                }
+
+                $ticketsJs[] = [
+                    'id' => $ticket->id,
+                    'name' => $ticket->name,
+                    'price' => number_format($ticket->price, 0, '', '.'),
+                    'entry_date' => $entryDate,
+                    'entry_start_time' => $startTime,
+                    'entry_end_time' => $endTime,
+                ];
+            }
+        @endphp
+
+        <script>
+            const allTickets = @json($ticketsJs);
+            // console.log(allTickets); // descomenta para debug
+        </script>
+
+        <script>
+            function filterTicketsByDate() {
+                const selectedDate = document.getElementById('filter_date').value;
+                const ticketSelect = document.getElementById('id_ticket');
+                const tomSelect = ticketSelect.tomselect;
+
+                // Limpia las opciones actuales
+                tomSelect.clearOptions();
+
+                if (!selectedDate) {
+                    tomSelect.addOption({ value: '', text: 'Seleccione una fecha primero' });
+                    tomSelect.refreshOptions(false);
+                    return;
+                }
+
+                // Filtrar los tickets que correspondan a la fecha seleccionada
+                const filteredTickets = allTickets.filter(ticket => ticket.entry_date === selectedDate);
+
+                if (filteredTickets.length === 0) {
+                    tomSelect.addOption({ value: '', text: 'No hay tickets disponibles para esta fecha' });
+                } else {
+                    filteredTickets.forEach(ticket => {
+                        let label = `${ticket.name} - $${ticket.price}`;
+                        if (ticket.entry_start_time && ticket.entry_end_time) {
+                            label += ` (${ticket.entry_start_time} - ${ticket.entry_end_time})`;
+                        }
+                        tomSelect.addOption({ value: ticket.id, text: label });
+                    });
+                }
+
+                tomSelect.refreshOptions(false);
+            }
+
+        </script>
+
+
+
     @endsection

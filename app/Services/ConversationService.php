@@ -2,13 +2,10 @@
 
 namespace App\Services;
 
-use App\SyModels\Conversations;
-use App\SyModels\ConversationsMessages;
+use App\Models\Conversations;
+use App\Models\ConversationsMessages;
 use Illuminate\Support\Facades\Auth;
 use App\Services\WhatsApp\MessageService;
-use App\Events\NewMessageWhatsAppReceived;
-use App\SyModels\NumbersWhatsappSysUser;
-use App\SyModels\ConversationsCustomer;
 
 class ConversationService
 {
@@ -25,7 +22,7 @@ class ConversationService
 
         if ($message_whatsapp_id) {
             // Solo la conversación relacionada al mensaje recibido
-            $query->whereHas('conversationsMessages', function ($q) use ($message_whatsapp_id) {
+            $query->whereHas('messages', function ($q) use ($message_whatsapp_id) {
                 $q->where('message_what_id', $message_whatsapp_id);
             });
         }
@@ -36,7 +33,7 @@ class ConversationService
     public function getConversationsMessageByUser($request, $userId, $convMsgId=null, $messageWhatId=null)
     {
         // Construir query base
-        $query = ConversationsMessages::where('sys_users_id', $userId);
+        $query = ConversationsMessage::where('sys_users_id', $userId);
 
         // Si se pasa conversación ID, filtrar por ella
         if (isset($request->convoId) && !empty($request->convoId)) {
@@ -162,7 +159,7 @@ class ConversationService
             return false;
         }
 
-        $message = new ConversationsMessages();
+        $message = new ConversationsMessage();
         $message->sys_users_id = $conversation->sys_users_id;
         $message->created_by = $conversation->sys_users_id;
         $message->conversations_id = $request->conversation_id;

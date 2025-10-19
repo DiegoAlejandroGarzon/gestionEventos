@@ -33,6 +33,12 @@ class HandleWebhookService
             $profileName = ($objectBody['entry'][0]['changes'][0]['value']['contacts'][0]['profile']['name'] ?? $this->__externalPhoneNumber);
             $timestamp = $objectBody['entry'][0]['changes'][0]['value']['messages'][0]['timestamp'];
             
+            // Verificar si el mensaje es muy antiguo (más de 5 minutos)
+            if (time() - (int)$timestamp > 300) { // 300 segundos = 5 minutos
+                file_put_contents(storage_path() . '/logs/log_webhook.txt', "<- Mensaje antiguo ignorado -> ID: $message_whatsapp_id, Timestamp: $timestamp" . PHP_EOL, FILE_APPEND);
+                return true;
+            }
+            
             switch($objectBody['entry'][0]['changes'][0]['value']['metadata']['phone_number_id']){
                 
                 // Alcaldia Palmira

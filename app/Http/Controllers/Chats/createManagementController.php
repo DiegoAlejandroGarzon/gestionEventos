@@ -42,20 +42,25 @@ class createManagementController extends Controller{
             $requestBody = $request->getContent();
             $objectBody = json_decode($requestBody, true);
 
-            // Log opcional
-            Log::info('Webhook recibido:', $objectBody);
+            // ✅ Verifica si viene del número válido
+            $validPhoneNumberId = '855752667617564';
+            $receivedPhoneId = $objectBody['entry'][0]['changes'][0]['value']['metadata']['phone_number_id'] ?? null;
 
-            // Procesar evento vía servicio
+            // ❌ Si no viene del número válido, no se hace absolutamente nada
+            if ($receivedPhoneId !== $validPhoneNumberId) {
+                return response()->json(['status' => 'IGNORED'], 200);
+            }
+
+            // ✅ Procesamiento normal
+            Log::info('Webhook recibido: ' . json_encode($objectBody));
+
             $handleWebhookService = new HandleWebhookService();
             $handleWebhookService->init($objectBody);
 
-            // Facebook espera una respuesta 200 con contenido
             return response()->json(['status' => 'EVENT_RECEIVED'], 200);
         }
 
-        // Para otros métodos, retornar 405
         return response('Método no permitido', 405);
     }
-
-    
+   
 }

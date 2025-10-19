@@ -5,6 +5,8 @@ namespace App\Services\WhatsApp\AlcaldiaPalmira;
 use App\Services\WhatsApp\MessageService;
 use App\Services\WhatsApp\QueryService;
 use App\Services\WhatsApp\AlcaldiaPalmira\MessageCustomNotTemplateService;
+use App\Services\EventService;
+use App\Services\WhatsApp\AlcaldiaPalmira\MenuCustomService;
 
 class InteractionListReplyService
 {
@@ -38,21 +40,24 @@ class InteractionListReplyService
             
             // reserva
             case "reservar_boletas":
-                
+                // consultamos los aforos de los 3 dias actuales
+                $eventService = new EventService();
+                $arrDataDaysFrees = $eventService->getDaysAndTimesFrees();
+                $menuCustomService = new MenuCustomService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
+                $menuCustomService->sendMenu_selectHorario($arrDataDaysFrees);
                 break;
             
             case "informacion_evento":
                 $responseText = "🎄 *El Pesebre Más Grande del Mundo – Palmira 2025*\n\n";
                 $responseText .= "📍 *Ubicación:* Bosque Municipal, Palmira, Valle del Cauca.\n";
                 $responseText .= "🔗 Ver en Google Maps: https://maps.app.goo.gl/oqFJ21xZWmnkTDGz7"; // <- reemplaza este enlace por el correcto
-                $responseText .= "\n📅 *Fechas:* Del 1 al 30 de diciembre de 2025.\n";
+                $responseText .= "\n📅 *Fechas:* Del 1 al 31 de diciembre de 2025.\n";
                 $responseText .= "🕐 *Horario:* Todos los días de 5:00 P.M. a 11:00 P.M.\n\n";
                 $responseText .= "🎟️ *Entrada con boleta reservada previamente.*\n";
                 $responseText .= "Puedes hacer la reserva desde el menú principal seleccionando *'Reservar boletas'*. \n\n";
                 $responseText .= "🙌 ¡Te esperamos para vivir juntos la magia de la Navidad en Palmira!";
 
                 $responseTplArr = $messageService->sendMessageNotTemplate($this->__externalPhoneNumber, $responseText, $list_reply["title"], false, null);
-
                 $queryService->storeResponseAutoBot(
                     "Respuesta automática",
                     null,
@@ -84,7 +89,6 @@ class InteractionListReplyService
                 $responseText .= "Escribe *MENU* para volver al inicio y explorar otras opciones.";
 
                 $responseTplArr = $messageService->sendMessageNotTemplate($this->__externalPhoneNumber, $responseText, $list_reply["title"], false, null);
-
                 $queryService->storeResponseAutoBot(
                     "Respuesta automática",
                     null,

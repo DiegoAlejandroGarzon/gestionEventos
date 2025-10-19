@@ -23,28 +23,39 @@ class createManagementController extends Controller{
         }
     }
     
-    public function handleWeBHook(Request $request){
-        // Define tu token de verificación
+    public function handleWeBHook(Request $request)
+    {
+        // Tu token definido en Facebook Developer
         $verify_token = 'T3sting!B4nc4';
 
-        // Maneja las notificaciones de eventos
-        $requestBody = $request->getContent();
-        // Decodifica la carga útil
-        $objectBody = json_decode($requestBody, true);
-        
-        // Guarda la carga útil en un archivo de registro
-        //file_put_contents(storage_path().'/logs/log_webhook.txt', "<<== inicio =>>". $requestBody . PHP_EOL, FILE_APPEND);
-        
-        $handleWebhookService = new HandleWebhookService();
-        $handleWebhookService->init($objectBody);
-        
-        // Verifica el token de la solicitud de verificación
-        if ($request->input('hub_verify_token') === $verify_token) {
-            return response($request->input('hub_challenge'), 200);
+        // Paso 1: Verificación inicial (cuando Facebook hace GET para validar)
+        if ($request->isMethod('get')) {
+            if ($request->input('hub_verify_token') === $verify_token) {
+                return response($request->input('hub_challenge'), 200);
+            } else {
+                return response('Token de verificación inválido', 403);
+            }
         }
-        
-        // Responde con un 200 OK
-        return response()->json(['status' => 'success'], 200);
+
+        // Paso 2: Recepción de eventos (POST)
+        if ($request->isMethod('post')) {
+            $requestBody = $request->getContent();
+            $objectBody = json_decode($requestBody, true);
+
+            // Log opcional
+            Log::info('Webhook recibido:', $objectBody);
+
+            // Procesar evento vía servicio
+            $handleWebhookService = new HandleWebhookService();
+            $handleWebhookService->init($objectBody);
+
+            // Facebook espera una respuesta 200 con contenido
+            return response()->json(['status' => 'EVENT_RECEIVED'], 200);
+        }
+
+        // Para otros métodos, retornar 405
+        return response('Método no permitido', 405);
     }
+
     
 }

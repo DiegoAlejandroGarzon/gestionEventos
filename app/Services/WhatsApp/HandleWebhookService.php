@@ -20,7 +20,7 @@ class HandleWebhookService
                 file_put_contents(storage_path().'/logs/log_webhook.txt', "<- No messages found ->" .json_encode($objectBody). PHP_EOL, FILE_APPEND);
                 return true;
             }
-             return true;
+             //return true;
             $message_whatsapp_id = $objectBody['entry'][0]['changes'][0]['value']['messages'][0]['id'];
             
             // validamos el ID del mensjae de whatsapp

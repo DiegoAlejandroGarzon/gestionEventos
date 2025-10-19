@@ -33,6 +33,7 @@ use App\Http\Controllers\TicketFeatureController;
 use App\Http\Controllers\PDFController;
 use App\Http\Controllers\PaypalController;
 use App\Http\Controllers\SeatController;
+use App\Http\Controllers\Chats\createManagementController;
 
 Route::get('theme-switcher/{activeTheme}', [ThemeController::class, 'switch'])->name('theme-switcher');
 Route::get('layout-switcher/{activeLayout}', [LayoutController::class, 'switch'])->name('layout-switcher');

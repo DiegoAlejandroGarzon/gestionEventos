@@ -37,7 +37,7 @@ use App\Http\Controllers\Chats\createManagementController;
 
 Route::get('theme-switcher/{activeTheme}', [ThemeController::class, 'switch'])->name('theme-switcher');
 Route::get('layout-switcher/{activeLayout}', [LayoutController::class, 'switch'])->name('layout-switcher');
-Route::post('/login', [LoginController::class, 'login'])->name('login');
+Route::post('/login', [LoginController::class, 'login']);
 Route::get('login', [PageController::class, 'login'])->name('login');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::get('/RegisterUsers', [UserController::class, 'RegisterUsers'])->name('users.register');
@@ -65,7 +65,7 @@ Route::get('/get-seats-by-ticket-type/{ticketTypeId}', [SeatController::class, '
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
     Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
-    Route::get('/', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+    Route::get('/', [App\Http\Controllers\HomeController::class, 'index']);
     //CRUD USUARIOS
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
@@ -154,6 +154,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::delete('/assistants/delete/{idEventAssistant}', [EventAssistantController::class, 'singleDelete'])->name('eventAssistant.singleDelete');
     Route::get('/event-assistant/{id}/qr', [EventAssistantController::class, 'showQr'])->name('eventAssistant.qr');
     Route::patch('/event-assistant/{id}/register-entry', [EventAssistantController::class, 'registerEntry'])->name('eventAssistant.registerEntry');
+    Route::post('/event-assistant-2/{id}/register-entry', [EventAssistantController::class, 'registerEntry2'])->name('eventAssistant.registerEntry2');
     Route::patch('/event-assistant/{id}/reject-entry', [EventAssistantController::class, 'rejectEntry'])->name('eventAssistant.rejectEntry');
     Route::get('/event-assistant/{id}/pdf', [EventAssistantController::class, 'generatePDF'])->name('eventAssistant.pdf');
     Route::patch('event-assistants/{eventAssistant}/features/{feature}/consume', [EventAssistantController::class, 'consumeFeature'])->name('eventAssistant.consumeFeature');

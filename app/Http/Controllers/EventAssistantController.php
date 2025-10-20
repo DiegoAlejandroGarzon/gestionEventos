@@ -539,7 +539,9 @@ class EventAssistantController extends Controller
         $currentTicketCount = EventAssistant::where('event_id', $event->id)
             ->where('ticket_type_id', $ticketType->id)
             ->where('has_entered', true)
-            ->count();
+            ->withCount('minors') // cuenta los menores por cada asistente
+            ->get()
+            ->sum(fn($ea) => 1 + $ea->minors_count); // 1 por el adulto + sus menores
 
         // Verificar el porcentaje de aforo del tipo de ticket
         $ticketCapacityReached = $currentTicketCount >= $ticketType->capacity;
@@ -559,6 +561,66 @@ class EventAssistantController extends Controller
             ]);
         }else{
             return redirect()->back()->with('success', $successMessage);
+        }
+    }
+
+    public function registerEntry2($id)
+    {
+        try {
+            // Buscar el asistente
+            $eventAssistant = EventAssistant::with(['event', 'ticketType', 'minors'])->findOrFail($id);
+
+            // Marcar ingreso
+            $eventAssistant->has_entered = true;
+            $eventAssistant->entry_time = now();
+            $eventAssistant->save();
+
+            $event = $eventAssistant->event;
+            $ticketType = $eventAssistant->ticketType;
+
+            // Contar aforo actual (adultos + menores)
+            $currentTicketCount = EventAssistant::where('event_id', $event->id)
+                ->where('ticket_type_id', $ticketType->id)
+                ->where('has_entered', true)
+                ->withCount('minors')
+                ->get()
+                ->sum(fn($ea) => 1 + $ea->minors_count); // 1 por el adulto + sus menores
+
+            $capacity = $ticketType->capacity ?? 0;
+            $ticketCapacityReached = $capacity > 0 && $currentTicketCount >= $capacity;
+            $ticketNearCapacity = $capacity > 0 && $currentTicketCount >= ($capacity * 0.9);
+
+            // Construir respuesta JSON según el caso
+            if ($ticketCapacityReached) {
+                return response()->json([
+                    'success' => true,
+                    'error' => "❌ Aforo máximo alcanzado para el tipo de Boleta '{$ticketType->name}'.
+                                Se han registrado {$currentTicketCount} entradas de un máximo de {$capacity}.",
+                ]);
+            }
+
+            if ($ticketNearCapacity) {
+                return response()->json([
+                    'success' => true,
+                    'warning' => "⚠️ Se ha alcanzado el 90% de la capacidad para la Boleta '{$ticketType->name}'.
+                                Registradas: {$currentTicketCount}/{$capacity}.",
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => '✅ Ingreso registrado correctamente.',
+                'current_count' => $currentTicketCount,
+                'capacity' => $capacity
+            ]);
+
+        } catch (\Exception $e) {
+            // Manejo de errores inesperados
+            return response()->json([
+                'success' => false,
+                'message' => '⚠️ Ocurrió un error al registrar el ingreso.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 

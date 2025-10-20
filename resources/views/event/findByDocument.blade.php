@@ -74,7 +74,10 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Limpia el resultado anterior
+        // Limpia el resultado anterior// 🔄 Limpia cualquier mensaje de registro previo y resultado anterior
+        const existingAlerts = document.querySelectorAll('.register-entry-message');
+        existingAlerts.forEach(el => el.remove());
+
         resultDiv.innerHTML = '<div class="text-slate-500">🔎 Buscando...</div>';
 
         // Llamada AJAX
@@ -95,6 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     : (firstEvent.status_message.includes('aún no está')
                         ? 'text-yellow-600 border-yellow-400 bg-yellow-50'
                         : 'text-red-600 border-red-400 bg-red-50');
+
 
                 // Tarjeta de usuario con el mismo color de estado
                 const userInfo = `
@@ -117,6 +121,67 @@ document.addEventListener('DOMContentLoaded', function () {
                         : (e.status_message.includes('aún no está')
                             ? 'text-yellow-600 border-yellow-400'
                             : 'text-red-600 border-red-400');
+
+                    // Si tiene un evento activo, marcar como ingresado
+                        if (e.is_active_now) {
+                            // Petición para registrar ingreso
+
+                            fetch(`{{ url('event-assistant-2') }}/${e.event_assistant_id}/register-entry`, {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                    'Accept': 'application/json'
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                const alertContainerId = 'alertContainer';
+                                let alertContainer = document.getElementById(alertContainerId);
+
+                                // Si no existe, crearlo justo debajo del input
+                                if (!alertContainer) {
+                                    alertContainer = document.createElement('div');
+                                    alertContainer.id = alertContainerId;
+                                    alertContainer.classList.add('mt-4', 'max-w-4xl', 'mx-auto', 'text-center', 'register-entry-message');
+                                    resultDiv.parentNode.insertBefore(alertContainer, resultDiv);
+                                }
+
+                                // Mostrar mensaje sin borrar resultDiv
+                                if (data.success) {
+                                    if (data.error) {
+                                        alertContainer.innerHTML = `
+                                            <div class="alert border border-red-400 bg-red-50 text-red-600 rounded-md p-3 flex items-center justify-center">
+                                                <i data-lucide="alert-octagon" class="w-5 h-5 mr-2"></i>
+                                                ${data.error}
+                                            </div>`;
+                                    } else if (data.warning) {
+                                        alertContainer.innerHTML = `
+                                            <div class="alert border border-yellow-400 bg-yellow-50 text-yellow-600 rounded-md p-3 flex items-center justify-center">
+                                                <i data-lucide="alert-triangle" class="w-5 h-5 mr-2"></i>
+                                                ${data.warning}
+                                            </div>`;
+                                    } else {
+                                        alertContainer.innerHTML = `
+                                            <div class="alert border border-green-400 bg-green-50 text-green-600 rounded-md p-3 flex items-center justify-center">
+                                                <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>
+                                                ${data.message || '✅ Ingreso registrado correctamente.'}
+                                            </div>`;
+                                    }
+                                } else {
+                                    alertContainer.innerHTML = `
+                                        <div class="alert border border-red-400 bg-red-50 text-red-600 rounded-md p-3 flex items-center justify-center">
+                                            <i data-lucide="alert-octagon" class="w-5 h-5 mr-2"></i>
+                                            ${data.message || '⚠️ No se pudo registrar el ingreso.'}
+                                        </div>`;
+                                }
+
+                                // Renderiza íconos Lucide
+                                if (typeof window.lucide !== 'undefined' && typeof window.lucide.createIcons === 'function') {
+                                    window.lucide.createIcons();
+                                }
+                            })
+
+                        }
 
                     return `
                         <article class="w-full bg-white dark:bg-darkmode-600 border ${statusColor} rounded-md p-4 mb-4 shadow-sm flex flex-col sm:flex-row gap-3">
@@ -150,6 +215,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // play sound once if any event is active
                 const anyActive = data.events.some(ev => ev.is_active_now);
                 playSound(anyActive);
+
             } else {
                 showAlert('danger', 'alert-octagon', `❌ ${data.message}`);
                 playSound(false);

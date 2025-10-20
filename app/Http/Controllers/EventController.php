@@ -609,15 +609,18 @@ class EventController extends Controller
         // Información de los eventos con validación de fecha/hora
         $events = $assistances->map(function ($a) use ($now) {
             $event = $a->event;
+            $ticketType = $a->ticketType; // Tipo de ticket asociado
 
-            $eventDate = $event->event_date ? Carbon::parse($event->event_date) : null;
-            $startTime = $event->start_time ? Carbon::parse($event->start_time) : null;
-            $endTime   = $event->end_time ? Carbon::parse($event->end_time) : null;
+            // Obtener fecha y hora del ticket (no del evento)
+            $ticketDate = $ticketType->entry_date ? Carbon::parse($ticketType->entry_date) : null;
+            $entryStart = $ticketType->entry_start_time ? Carbon::parse($ticketType->entry_start_time) : null;
+            $entryEnd   = $ticketType->entry_end_time ? Carbon::parse($ticketType->entry_end_time) : null;
 
-            $isToday = $eventDate && $eventDate->isSameDay($now);
-            $isWithinTime = $isToday && $startTime && $endTime && $now->between($startTime, $endTime);
+            $isToday = $ticketDate && $ticketDate->isSameDay($now);
+            $isWithinTime = $isToday && $entryStart && $entryEnd && $now->between($entryStart, $entryEnd);
 
             $isActive = $isWithinTime;
+            // $isActive = true;
             $statusMessage = $isActive
                 ? '🟢 El evento está activo en este momento.'
                 : ($isToday
@@ -635,6 +638,7 @@ class EventController extends Controller
                 'created_at' => optional($event->created_at)->format('Y-m-d H:i'),
                 'is_active_now' => $isActive,
                 'status_message' => $statusMessage,
+                'event_assistant_id' => $a->id,
             ];
         });
 

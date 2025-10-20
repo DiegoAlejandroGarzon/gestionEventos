@@ -52,7 +52,7 @@ class createManagementController extends Controller{
             }
 
             // ✅ Procesamiento normal
-            Log::info('Webhook recibido: ' . json_encode($objectBody));
+            //Log::info('Webhook recibido: ' . json_encode($objectBody));
 
             $handleWebhookService = new HandleWebhookService();
             $handleWebhookService->init($objectBody);

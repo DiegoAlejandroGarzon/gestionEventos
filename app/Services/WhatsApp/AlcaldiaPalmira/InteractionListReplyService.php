@@ -42,9 +42,9 @@ class InteractionListReplyService
             case "reservar_boletas":
                 // consultamos los aforos de los 3 dias actuales
                 $eventService = new EventService();
-                $arrDataDaysFrees = $eventService->getDaysAndTimesFrees();
+                $arrDataDaysFrees = $eventService->getAvailableDaysOnly();
                 $menuCustomService = new MenuCustomService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
-                $menuCustomService->sendMenu_selectHorario($arrDataDaysFrees);
+                $menuCustomService->sendMenu_selectDia($arrDataDaysFrees);
                 break;
             
             case "informacion_evento":
@@ -98,6 +98,29 @@ class InteractionListReplyService
                 );
 
                 break;
+            
+            default:
+                if (str_starts_with($list_reply['id'], 'seleccion_dia_')) {
+                    $fechaSeleccionada = str_replace('seleccion_dia_', '', $list_reply['id']);
+
+                    $eventService = new EventService();
+                    $availabilityData = $eventService->getDaysAndTimesFrees($fechaSeleccionada);
+
+                    if (!empty($availabilityData)) {
+                        $menuCustomService = new MenuCustomService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
+                        $menuCustomService->sendMenu_selectHorario($availabilityData, $fechaSeleccionada);
+                    } else {
+                        $responseText = "🚫 No se encontraron horarios disponibles para el día seleccionado.";
+                        $messageService = new MessageService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
+                        $responseTplArr = $messageService->sendMessageNotTemplate($this->__externalPhoneNumber, $responseText, $list_reply["title"], false, null);
+
+                        $queryService = new QueryService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
+                        $queryService->storeResponseAutoBot("Respuesta automática", null, "text", "auto_text", $responseTplArr);
+                    }
+
+                }
+                break;
+
         }
     }
 }

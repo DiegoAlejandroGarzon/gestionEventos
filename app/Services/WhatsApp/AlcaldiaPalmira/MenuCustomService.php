@@ -61,46 +61,81 @@ class MenuCustomService
         ];
     }
 
-    public function sendMenu_selectHorario($availabilityData)
+    public function sendMenu_selectHorario(array $horarios, string $fecha = null)
     {
         $headerText = '🎟️ Selecciona horario';
-        $bodyText = 'Estos son los días y horarios con cupos disponibles. Elige el que prefieras para reservar tus boletas.';
+        $bodyText =  "Estos son los horarios disponibles para el día *" . \Carbon\Carbon::parse($fecha)->translatedFormat('l d \d\e F') . "*. Elige el que prefieras para reservar tus boletas.";
+
         $footerText = '📅 Horarios disponibles';
         $buttonText = 'Ver horarios';
 
         $sections = [];
 
-        foreach ($availabilityData as $fecha => $horarios) {
-            // Convertimos la fecha a un formato más legible (ej. "Domingo 19 de Octubre")
-            $fechaFormateada = \Carbon\Carbon::parse($fecha)->translatedFormat('l d \d\e F');
+        // Si no se pasa fecha, usamos una genérica
+        $fechaFormateada = \Carbon\Carbon::parse($fecha)->translatedFormat('D d M'); 
 
-            $rows = [];
+        $rows = [];
 
-            foreach ($horarios as $horario) {
-                if (empty($horario['available'])) continue; // Solo mostrar los que tienen cupo
+        foreach ($horarios as $horario) {
+            if (empty($horario['available'])) continue; // Solo mostrar los que tienen cupo
 
-                $rows[] = [
-                    'id' => 'seleccion_horario_' . $horario['ticket_type_id'],
-                    'title' => "🕒 {$horario['start']} - {$horario['end']}",
-                    'description' => 'Haz clic para reservar este horario'
-                ];
-            }
-
-            // Si hay al menos un horario disponible en esta fecha, agregar sección
-            if (!empty($rows)) {
-                $sections[] = [
-                    'title' => "🗓️ $fechaFormateada",
-                    'rows' => $rows
-                ];
-            }
+            $rows[] = [
+                'id' => 'seleccion_horario_' . $horario['ticket_type_id'],
+                'title' => "🕒 {$horario['start']} - {$horario['end']}",
+                'description' => "Clic para reservar — 📦 {$horario['remaining']} de {$horario['capacity']} disponibles"
+            ];
         }
 
-        // Si no hay horarios disponibles
-        if (empty($sections)) {
-            $responseText = "🚫 No hay horarios disponibles por ahora. Intenta más tarde.";
+        if (!empty($rows)) {
+            $sections[] = [
+                'title' => "🗓️ $fechaFormateada",
+                'rows' => $rows
+            ];
+        }
+
+        $messageService = new MessageService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
+        $data = $messageService->getDataMenuList($headerText, $bodyText, $footerText, $buttonText, $sections);
+
+        $curlService = new CurlService($this->__numberWhatssAppId);
+        $curlService->curlFacebookApi($data, $this->__numberWhatssAppId);
+        file_put_contents(storage_path().'/logs/log_webhook.txt', "<- MENU_SECTIONS_JSON ->" .json_encode($sections). PHP_EOL, FILE_APPEND);
+        return [
+            'type' => 'menu_list',
+            'header' => $headerText,
+            'body' => $bodyText,
+            'footer' => $footerText,
+            'button' => $buttonText,
+            'sections' => $sections
+        ];
+    }
+
+    public function sendMenu_selectDia(array $availableDays)
+    {
+        $headerText = '📆 Selecciona un día';
+        $bodyText = 'Estos son los días con horarios disponibles para reservar tus boletas. Selecciona el día que prefieras.';
+        $footerText = '✨ Días disponibles';
+        $buttonText = 'Ver días';
+
+        $rows = [];
+
+        foreach ($availableDays as $fecha) {
+            // Ej: "Vie 15 Nov"
+            $fechaFormateada = \Carbon\Carbon::parse($fecha)->translatedFormat('l d \d\e M');
+
+            $rows[] = [
+                'id' => 'seleccion_dia_' . $fecha,
+                'title' => "🗓️ $fechaFormateada", // Máximo 24 caracteres
+                'description' => 'Ver horarios disponibles para este día' // Máximo 72 caracteres
+            ];
+        }
+
+
+        // Si no hay días disponibles
+        if (empty($rows)) {
+            $responseText = "🚫 No hay días con cupos disponibles por ahora. Intenta más tarde.";
 
             $messageService = new MessageService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
-            $responseTplArr = $messageService->sendMessageNotTemplate($this->__externalPhoneNumber, $responseText, "No hay entradas disponibles", false, null);
+            $responseTplArr = $messageService->sendMessageNotTemplate($this->__externalPhoneNumber, $responseText, "No hay días disponibles", false, null);
 
             $queryService = new QueryService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
             $queryService->storeResponseAutoBot(
@@ -114,19 +149,22 @@ class MenuCustomService
             return;
         }
 
-        // ⚠️ Si solo hay una sección (es decir, un solo día con horarios), agregamos la fecha al footer
-        if (count($sections) === 1) {
-            $footerText .= ' para ' . strtolower($sections[0]['title']); // Ej: 📅 Horarios disponibles para domingo 19 de octubre
-        }
+        // Construir la única sección del menú
+        $sections = [
+            [
+                'title' => '📅 Dias disponibles',
+                'rows' => $rows
+            ]
+        ];
 
-        // Construir y enviar el menú tipo lista
+        // Enviar el menú
         $messageService = new MessageService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
         $data = $messageService->getDataMenuList($headerText, $bodyText, $footerText, $buttonText, $sections);
 
         $curlService = new CurlService($this->__numberWhatssAppId);
         $curlService->curlFacebookApi($data, $this->__numberWhatssAppId);
 
-        file_put_contents(storage_path() . '/logs/log_webhook.txt', "<- MENU_BOLETAS ->" . json_encode($sections) . PHP_EOL, FILE_APPEND);
+        file_put_contents(storage_path() . '/logs/log_webhook.txt', "<- MENU_DIAS ->" . json_encode($sections) . PHP_EOL, FILE_APPEND);
 
         return [
             'type' => 'menu_list',

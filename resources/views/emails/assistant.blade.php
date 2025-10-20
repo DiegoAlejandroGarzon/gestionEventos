@@ -57,7 +57,7 @@
             <h1>Inscripción al Evento</h1>
         </div>
         <div class="content">
-            <p>Se ha generado una inscripción para el evento de <strong>TuBoleta</strong>. A continuación, se envían los detalles de su inscripción:</p>
+            <p>Se ha generado una inscripción para el evento de <strong>ValiApp</strong>. A continuación, se envían los detalles de su inscripción:</p>
 
             <h2>Detalles del Asistente</h2>
             <p><strong>Nombre:</strong> {{ $eventAssistant->user->name }} {{ $eventAssistant->user->lastname }}</p>

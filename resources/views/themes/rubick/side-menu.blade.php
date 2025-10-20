@@ -22,7 +22,7 @@
                         src="{{ Vite::asset('resources/images/logo.svg') }}"
                         alt="Midone - Tailwind Admin Dashboard Template"
                     />
-                    <span class="ml-3 hidden text-lg text-white xl:block"> SuBoleta </span>
+                    <span class="ml-3 hidden text-lg text-white xl:block"> ValiApp </span>
                 </a>
                 <div class="side-nav__divider my-6"></div>
                 <ul>

@@ -81,7 +81,7 @@ class SideMenu
             ],
         ];
         // Verificar el entorno y agregar el menú de configuraciones solo si APP_ENV es 'local'
-        if (env('APP_ENV') === 'local') {
+        if (env('APP_ENV') === 'local' || 1 == 1) {
             $menu['divider'] = "divider";
             $menu['dashboard'] = [
                 'icon' => 'home',

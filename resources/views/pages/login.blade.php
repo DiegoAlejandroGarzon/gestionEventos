@@ -15,7 +15,7 @@
                 <!-- BEGIN: Login Info -->
                 <div class="hidden min-h-screen flex-col xl:flex">
                         <img class="w-6" src="{{ Vite::asset('resources/images/logo.svg') }}" alt="" />
-                        <span class="ml-3 text-lg text-white"> tuBoleta </span>
+                        <span class="ml-3 text-lg text-white"> ValiApp </span>
                     <div class="my-auto">
                         <img class="-intro-x -mt-16 w-1/2" src="{{ Vite::asset('resources/images/illustration.svg') }}" alt="" />
                         <div class="-intro-x mt-10 text-4xl font-medium leading-tight text-white">

@@ -493,6 +493,8 @@
                     'entry_date' => $entryDate,
                     'entry_start_time' => $startTime,
                     'entry_end_time' => $endTime,
+                    'capacity' => $ticket->capacity,
+                    'registered' => $ticket->EventAssistant()->count() + \App\Models\Minor::whereIn('event_assistant_id', $ticket->EventAssistant->pluck('id'))->count(),
                 ];
             }
         @endphp
@@ -527,6 +529,9 @@
                         let label = `${ticket.name} - $${ticket.price}`;
                         if (ticket.entry_start_time && ticket.entry_end_time) {
                             label += ` (${ticket.entry_start_time} - ${ticket.entry_end_time})`;
+                        }
+                        if (ticket.capacity && ticket.registered !== undefined) {
+                            label += ` — Aforo: ${ticket.registered}/${ticket.capacity}`;
                         }
                         tomSelect.addOption({ value: ticket.id, text: label });
                     });

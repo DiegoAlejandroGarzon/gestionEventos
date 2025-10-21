@@ -7,9 +7,8 @@ use App\Services\WhatsApp\QueryService;
 use App\Services\WhatsApp\AlcaldiaPalmira\MessageCustomNotTemplateService;
 use App\Services\EventService;
 use App\Services\WhatsApp\AlcaldiaPalmira\MenuCustomService;
-use Illuminate\Support\Str;
 
-class InteractionListReplyService
+class InteractionNfmReplyService
 {
     private $__externalPhoneNumber;
     private $__numberWhatssAppId;
@@ -135,47 +134,6 @@ class InteractionListReplyService
                         "text",
                         "auto_text",
                         $sendEstructuraa
-                    );
-
-                }elseif (str_starts_with($list_reply['id'], 'seleccion_horario_')) {
-                    $fechaSeleccionada = str_replace('seleccion_horario_', '', $list_reply['id']);
-                    $fechaSeleccionada = explode("$", $fechaSeleccionada);
-                    
-                    $ticketIdSelected = $fechaSeleccionada[1];
-                    $fechaSeleccionada = $fechaSeleccionada[0];
-                    
-                    $ticketIdSelected = explode("|", $ticketIdSelected);
-                    $hourStart = $ticketIdSelected[0];
-                    $hourEnd = $ticketIdSelected[1];
-                    $ticketIdSelected = $ticketIdSelected[2];
-
-                    $eventService = new EventService();
-                    $availabilityData = $eventService->getDaysAndTimesFrees($fechaSeleccionada);
-
-                    $fechaFormateada = \Carbon\Carbon::parse($fechaSeleccionada)->translatedFormat('l d \d\e M');
-                    $guid = (string) Str::uuid();
-                    // Parámetros para la plantilla
-                    $templateParams = [
-                        ['type' => 'text', 'text' => $fechaFormateada],
-                        ['type' => 'text', 'text' => $hourStart." a ".$hourEnd],
-                        ['type' => 'text', 'text' => $ticketIdSelected."|".$guid]
-                    ];
-                    $arrResponse = $messageService->sendMessage(
-                            $this->__externalPhoneNumber, 
-                            "alcapalmira_register_visite", 
-                            $templateParams, 
-                            true
-                    );
-                    $whatsId = $arrResponse->messageId;
-                    // ingresamos la auto respuesta
-                    $queryService->storeResponseAutoBot(
-                        "Respuesta automatica", 
-                        $whatsId, 
-                        "text_flow",
-                        "auto_text", 
-                        null,
-                        "alcapalmira_register_visite",
-                        $templateParams // mejorar esto para q inserte los params en bd
                     );
 
                 }

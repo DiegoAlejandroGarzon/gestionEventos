@@ -80,7 +80,7 @@ class MenuCustomService
             if (empty($horario['available'])) continue; // Solo mostrar los que tienen cupo
 
             $rows[] = [
-                'id' => 'seleccion_horario_' . $horario['ticket_type_id'],
+                'id' => 'seleccion_horario_' . $fecha. "$" .$horario['start']."|".$horario['end']."|".$horario['ticket_type_id'],
                 'title' => "🕒 {$horario['start']} - {$horario['end']}",
                 'description' => "Clic para reservar — 📦 {$horario['remaining']} de {$horario['capacity']} disponibles"
             ];

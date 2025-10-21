@@ -51,7 +51,9 @@ class QueryService
             $conversationsMessages->users_id = $conversation->users_id;
             $conversationsMessages->conversations_id = $conversation->id;        
             $conversationsMessages->content = $text;
-            $conversationsMessages->content_bot = json_encode($array_dinamic, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $conversationsMessages->content_bot = is_array($array_dinamic)
+                ? json_encode($array_dinamic, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                : null;
             $conversationsMessages->content_response = $name_tpl_or_flow; // name tpl_or_flow usado o opcion seleccionada
             $conversationsMessages->direction = "sent";
             $conversationsMessages->message_what_id = $msgWhatId;
@@ -59,6 +61,9 @@ class QueryService
             $conversationsMessages->origin = "bot";
             $conversationsMessages->origin_bot_type = $type_origin_bot;
             $conversationsMessages->received_at = now();
+            $conversationsMessages->params_template = is_array($templateParams)
+                ? json_encode($templateParams, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                : null;
             $conversationsMessages->save();
             
             return $conversationsMessages;

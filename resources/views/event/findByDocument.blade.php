@@ -7,20 +7,24 @@
 @section('subcontent')
 <div class="container py-5">
     <h2 class="intro-y mt-10 text-lg font-medium text-center">Verificación de Entrada por Cédula</h2>
+    <div class="mt-5 box">
+        <!-- Selector de Evento -->
+        <div class="m-2">
+            <x-base.form-label for="eventSelect">Seleccionar Evento Activo</x-base.form-label>
+            <x-base.tom-select id="eventSelect" name="eventSelect" class="w-full">
+                <option value="">Seleccione un evento</option>
+                @foreach ($events as $event)
+                    <option value="{{ $event->id }}">
+                        {{ $event->name }}
+                    </option>
+                @endforeach
+            </x-base.tom-select>
+        </div>
 
-    {{-- Input para escanear o digitar la cédula --}}
-    <div class="row justify-content-center mb-4">
-        <div class="col-md-6">
-            <div class="input-group input-group-lg">
-                <div class="grid grid-cols-12 gap-2">
-                    <div class="col-span-12">
-                        <label data-tw-merge for="documentInput" class="inline-block mb-2 group-[.form-inline]:mb-2 group-[.form-inline]:sm:mb-0 group-[.form-inline]:sm:mr-5 group-[.form-inline]:sm:text-right">
-                            Numero de documento
-                        </label>
-                        <input data-tw-merge id="documentInput" type="text" placeholder="Escanee o escriba el número de cédula..." class="disabled:bg-slate-100 disabled:cursor-not-allowed dark:disabled:bg-darkmode-800/50 dark:disabled:border-transparent [&amp;[readonly]]:bg-slate-100 [&amp;[readonly]]:cursor-not-allowed [&amp;[readonly]]:dark:bg-darkmode-800/50 [&amp;[readonly]]:dark:border-transparent transition duration-200 ease-in-out w-full text-sm border-slate-200 shadow-sm rounded-md placeholder:text-slate-400/90 focus:ring-4 focus:ring-green-500 focus:ring-opacity-20 focus:border-primary focus:border-opacity-40 dark:bg-darkmode-800 dark:border-transparent dark:focus:ring-slate-700 dark:focus:ring-opacity-50 dark:placeholder:text-slate-500/80 group-[.form-inline]:flex-1 group-[.input-group]:rounded-none group-[.input-group]:[&amp;:not(:first-child)]:border-l-transparent group-[.input-group]:first:rounded-l group-[.input-group]:last:rounded-r group-[.input-group]:z-10" />
-                    </div>
-                </div>
-            </div>
+        <!-- Selector de Cédula -->
+        <div class="m-2">
+            <x-base.form-label for="documentSelect">Buscar Cédula</x-base.form-label>
+            <x-base.tom-select id="documentSelect" name="documentSelect" class="w-full" placeholder="Escriba al menos 4 dígitos..."></x-base.tom-select>
         </div>
     </div>
 
@@ -28,66 +32,93 @@
     <div id="resultContainer" class="mt-4 px-3 sm:px-0 w-full max-w-4xl mx-auto"></div>
 </div>
 
-<!-- en resources/views/layouts/app.blade.php o tu layout principal -->
 <script src="https://unpkg.com/lucide@^0.267.0/dist/lucide.min.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const input = document.getElementById('documentInput');
+    const documentSelect = document.getElementById('documentSelect');
+    const eventSelect = document.getElementById('eventSelect');
     const resultDiv = document.getElementById('resultContainer');
-    const button = document.getElementById('searchButton');
-
-    input.addEventListener('focus', function () {
-        input.classList.remove('bg-slate-200');
-        input.classList.add('bg-green-100');
-    });
-
-    input.addEventListener('blur', function () {
-        input.classList.remove('bg-green-100');
-        input.classList.add('bg-slate-200');
-    });
-    // Función para mostrar alertas con tu estilo
-    function showAlert(type, icon, message) {
-        const alertHTML = `
-            <div role="alert"
-                class="alert relative border rounded-md px-5 py-4 bg-${type} border-${type} bg-opacity-20 border-opacity-5 text-${type}
-                dark:border-${type} dark:border-opacity-20 mb-2 flex items-center"
-            >
-                <i data-lucide="${icon}" class="stroke-1.5 w-6 h-6 mr-2"></i>
-                ${message}
-            </div>
-        `;
-        resultDiv.innerHTML = alertHTML;
-
-        // Solo crear íconos si la librería está disponible
-        if (typeof window.lucide !== 'undefined' && typeof window.lucide.createIcons === 'function') {
-            window.lucide.createIcons();
-        }
+    if (documentSelect.tomselect) {
+        documentSelect.tomselect.destroy();
     }
 
-    // Función de búsqueda
-    function searchByDocument() {
-        const documentNumber = input.value.trim();
+    // 🔹 Autocompletado con TomSelect
+    const cedulaSelect = new TomSelect(documentSelect, {
+        create: false,
+        maxOptions: 10,
+        valueField: 'document_number',
+        labelField: 'display',
+        searchField: 'document_number',
+        load: function (query, callback) {
+            if (query.length < 4) return callback();
 
-        if (!documentNumber) {
-            showAlert('warning', 'alert-circle', '⚠️ Por favor, escanee o escriba una cédula válida.');
+            const eventId = eventSelect.value;
+            if (!eventId) return callback();
+
+            fetch(`{{ route('event.buscarCedulas') }}?event_id=${eventId}&query=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Mostrar “documento — nombre”
+                        data.results.forEach(r => {
+                            r.display = `${r.document_number} — ${r.name} ${r.lastname}`;
+                        });
+                        callback(data.results);
+
+                        // ✅ Autoseleccionar si hay solo una coincidencia
+                        if (data.results.length === 1) {
+                            cedulaSelect.addItem(data.results[0].document_number);
+                            executeVerification(data.results[0].document_number);
+                        }
+                    } else {
+                        callback();
+                    }
+                })
+                .catch(() => callback());
+        },
+        onChange: function (value) {
+            if (value) {
+                executeVerification(value);
+            }
+        },
+    });
+
+    // 🚫 Deshabilitar select de cédulas al inicio
+    cedulaSelect.disable();
+
+    // 🎯 Escuchar cambios del select de evento
+    eventSelect.addEventListener('change', function () {
+        if (this.value) {
+            cedulaSelect.enable();
+            cedulaSelect.clear(); // limpiar si ya tenía algo
+        } else {
+            cedulaSelect.clear();
+            cedulaSelect.disable();
+        }
+    });
+
+
+    // 🔎 Verificación de ingreso
+    function executeVerification(documentNumber) {
+        const eventId = eventSelect.value;
+        if (!eventId) {
+            showAlert('warning', 'alert-circle', '⚠️ Seleccione primero un evento activo.');
             return;
         }
 
-        // Limpia el resultado anterior// 🔄 Limpia cualquier mensaje de registro previo y resultado anterior
-        const existingAlerts = document.querySelectorAll('.register-entry-message');
-        existingAlerts.forEach(el => el.remove());
+        resultDiv.innerHTML = '<div class="text-slate-500">🔎 Verificando...</div>';
 
-        resultDiv.innerHTML = '<div class="text-slate-500">🔎 Buscando...</div>';
-
-        // Llamada AJAX
         fetch('{{ route('event.findByDocumentStore') }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
-            body: JSON.stringify({ document_number: documentNumber })
+            body: JSON.stringify({
+                document_number: documentNumber,
+                event_id: eventId
+            })
         })
         .then(response => response.json())
         .then(data => {
@@ -201,20 +232,37 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Layout final: eventos primero (en una columna en móvil, dos en pantallas mayores si quieres)
                 const eventsWrapper = `<div class="grid grid-cols-1 gap-4">${eventsList}</div>`;
 
-                // Render: eventos arriba, info usuario abajo
+                // 👶 Sección de menores (si existen)
+                let minorsSection = "";
+                const minors = firstEvent.minors || [];
+
+                if (minors.length > 0) {
+                    minorsSection = `
+                        <div class="border rounded-md p-4 mb-4 bg-slate-50 dark:bg-darkmode-700 shadow-sm">
+                            <h4 class="font-semibold text-lg mb-2 text-slate-800 dark:text-slate-100">👶 Menores asociados</h4>
+                            <ul class="list-disc ml-5 text-sm text-slate-700 dark:text-slate-300">
+                                ${minors.map(m => `
+                                    <li><strong>${m.full_name}</strong> — ${m.age} años</li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                // Render: eventos, menores, usuario
                 resultDiv.innerHTML = `
                     <div class="mb-3">${eventsWrapper}</div>
+                    ${minorsSection}
                     <div>${userInfo}</div>
                 `;
+
 
                 // render lucide icons inside resultDiv if available
                 if (typeof window.lucide !== 'undefined' && typeof window.lucide.createIcons === 'function') {
                     window.lucide.createIcons();
                 }
 
-                // play sound once if any event is active
-                const anyActive = data.events.some(ev => ev.is_active_now);
-                playSound(anyActive);
+                playSound(true);
 
             } else {
                 showAlert('danger', 'alert-octagon', `❌ ${data.message}`);
@@ -222,8 +270,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             setTimeout(() => {
-                input.value = '';
-                input.focus();
+                cedulaSelect.clear();   // limpia el valor seleccionado
+                cedulaSelect.tomselect.destroy();
+                cedulaSelect.focus();   // vuelve a enfocar el campo TomSelect
             }, 300);
         })
         .catch(error => {
@@ -233,23 +282,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Detección automática: cuando se detecta un número completo, se lanza la búsqueda
-    let searchTimeout;
-
-    input.addEventListener('input', function () {
-        clearTimeout(searchTimeout);
-        const value = input.value.trim();
-
-        // Si tiene más de 5 caracteres, lanza búsqueda automáticamente (ajusta si deseas)
-        if (value.length >= 5) {
-            searchTimeout = setTimeout(() => {
-                searchByDocument();
-            }, 600); // espera 0.6s después de dejar de escribir o escanear
-        }
-    });
-
-
-    // 🔊 Sonidos (éxito/error)
+    // 🔊 Sonido de confirmación
     function playSound(success) {
         const audio = new Audio(success
             ? 'https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg'
@@ -259,5 +292,4 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
-
 @endsection

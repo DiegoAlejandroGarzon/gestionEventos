@@ -559,18 +559,21 @@ class EventController extends Controller
     }
 
     function findByDocument(){
-        return view('event.findByDocument');
+        $events = Event::where('status', 2)->get(['id', 'name']);
+        return view('event.findByDocument', compact('events'));
     }
-
 
     public function findByDocumentStore(Request $request)
     {
         $request->validate([
-            'document_number' => 'required|string',
+            'document_number' => 'required|string|min:4',
+            'event_id' => 'required|integer|exists:events,id',
         ]);
 
-        // Buscar usuario por número de cédula
-        $user = User::where('document_number', $request->document_number)->first();
+        $document = $request->document_number;
+
+        // $user = User::where('document_number', $request->document_number)->first();
+        $user = User::where('document_number', 'like', $document . '%')->first();
 
         if (!$user) {
             return response()->json([
@@ -579,66 +582,69 @@ class EventController extends Controller
             ]);
         }
 
-        // Buscar todos los eventos en los que está registrado
-        $assistances = EventAssistant::with('event')
+        // Buscar solo el registro del evento seleccionado
+        $assistances = EventAssistant::with(['event', 'ticketType'])
             ->where('user_id', $user->id)
+            ->where('event_id', $request->event_id)
             ->get();
 
         if ($assistances->isEmpty()) {
             return response()->json([
                 'success' => false,
-                'message' => 'No se encuentra registrado en ningún evento'
+                'message' => 'El usuario no está registrado en este evento.'
             ]);
         }
 
-        // Obtener fecha y hora actual
         $now = Carbon::now();
 
-        // Información del usuario
         $userData = [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
             'document_number' => $user->document_number,
-            'phone' => $user->phone ?? null,
-            'age' => $user->age ?? null,
-            'address' => $user->address ?? null,
-            'created_at' => optional($user->created_at)->format('Y-m-d H:i'),
+            'phone' => $user->phone,
+            'age' => $user->age,
+            'address' => $user->address,
         ];
 
-        // Información de los eventos con validación de fecha/hora
         $events = $assistances->map(function ($a) use ($now) {
             $event = $a->event;
-            $ticketType = $a->ticketType; // Tipo de ticket asociado
+            $ticket = $a->ticketType;
 
-            // Obtener fecha y hora del ticket (no del evento)
-            $ticketDate = $ticketType->entry_date ? Carbon::parse($ticketType->entry_date) : null;
-            $entryStart = $ticketType->entry_start_time ? Carbon::parse($ticketType->entry_start_time) : null;
-            $entryEnd   = $ticketType->entry_end_time ? Carbon::parse($ticketType->entry_end_time) : null;
+            $ticketDate = $ticket->entry_date ? Carbon::parse($ticket->entry_date) : null;
+            $entryStart = $ticket->entry_start_time ? Carbon::parse($ticket->entry_start_time) : null;
+            $entryEnd   = $ticket->entry_end_time ? Carbon::parse($ticket->entry_end_time) : null;
 
             $isToday = $ticketDate && $ticketDate->isSameDay($now);
             $isWithinTime = $isToday && $entryStart && $entryEnd && $now->between($entryStart, $entryEnd);
 
-            $isActive = $isWithinTime;
-            // $isActive = true;
+            $isActive = true;
+
             $statusMessage = $isActive
                 ? '🟢 El evento está activo en este momento.'
                 : ($isToday
                     ? '🕓 El evento es hoy, pero aún no está en su rango horario.'
                     : '🔴 Este evento no está activo en la fecha actual.');
 
+            // 👶 Obtener los menores relacionados (si existen)
+            $minors = $a->minors()->get(['full_name', 'age'])->map(function ($minor) {
+                    return [
+                        'full_name' => $minor->full_name,
+                        'age' => $minor->age,
+                    ];
+                });
             return [
                 'id' => $event->id,
                 'name' => $event->name,
                 'description' => $event->description ?? 'Sin descripción',
-                'date' => $event->event_date ?? 'Fecha no disponible',
+                'date' => $ticket->entry_date ?? 'Sin fecha',
+                'start_time' => $ticket->entry_start_time ?? 'No especificada',
+                'end_time' => $ticket->entry_end_time ?? 'No especificada',
                 'place' => $event->address ?? 'Lugar no especificado',
-                'start_time' => $event->start_time ?? 'No especificada',
-                'end_time' => $event->end_time ?? 'No especificada',
-                'created_at' => optional($event->created_at)->format('Y-m-d H:i'),
                 'is_active_now' => $isActive,
                 'status_message' => $statusMessage,
                 'event_assistant_id' => $a->id,
+                'minors' => $minors,
             ];
         });
 
@@ -649,5 +655,25 @@ class EventController extends Controller
             'checked_at' => $now->format('Y-m-d H:i:s'),
         ]);
     }
+
+    public function buscarCedulas(Request $request)
+    {
+        $eventId = $request->get('event_id');
+        $query = $request->get('query');
+
+        $results = User::whereHas('events', function ($q) use ($eventId) {
+                $q->where('event_id', $eventId);
+            })
+            ->where('document_number', 'like', "%{$query}%")
+            ->limit(10)
+            ->get(['id', 'document_number', 'name', 'lastname']);
+
+        return response()->json([
+            'success' => true,
+            'results' => $results
+        ]);
+    }
+
+
 
 }

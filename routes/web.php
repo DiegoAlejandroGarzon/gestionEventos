@@ -140,6 +140,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/events/{id}/store-registration-parameters', [EventController::class, 'storeRegistrationParameters'])->name('events.storeRegistrationParameters');
     Route::get('/event/findByDocument', [EventController::class, 'findByDocument'])->name('event.findByDocument');
     Route::post('/event/findByDocumentStore', [EventController::class, 'findByDocumentStore'])->name('event.findByDocumentStore');
+    Route::get('/buscar-cedulas', [EventController::class, 'buscarCedulas'])->name('event.buscarCedulas');
 
     //ASISTENTS TO EVENT
     Route::get('/assistants/{idEvent}', [EventAssistantController::class, 'index'])->name('eventAssistant.index');

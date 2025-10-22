@@ -572,7 +572,7 @@ class EventController extends Controller
 
         $document = $request->document_number;
 
-        // $user = User::where('document_number', $request->document_number)->first();
+        // Buscar usuario por coincidencia parcial de documento
         $user = User::where('document_number', 'like', $document . '%')->first();
 
         if (!$user) {
@@ -583,7 +583,7 @@ class EventController extends Controller
         }
 
         // Buscar solo el registro del evento seleccionado
-        $assistances = EventAssistant::with(['event', 'ticketType'])
+        $assistances = EventAssistant::with(['event', 'ticketType', 'minors'])
             ->where('user_id', $user->id)
             ->where('event_id', $request->event_id)
             ->get();
@@ -608,38 +608,55 @@ class EventController extends Controller
         ];
 
         $events = $assistances->map(function ($a) use ($now) {
-            $event = $a->event;
             $ticket = $a->ticketType;
+            $event = $a->event;
 
-            $ticketDate = $ticket->entry_date ? Carbon::parse($ticket->entry_date) : null;
-            $entryStart = $ticket->entry_start_time ? Carbon::parse($ticket->entry_start_time) : null;
-            $entryEnd   = $ticket->entry_end_time ? Carbon::parse($ticket->entry_end_time) : null;
+            // Si no existe ticket, usar directamente la información del evento
+            $entryDate  = $ticket && $ticket->entry_date
+                ? Carbon::parse($ticket->entry_date)
+                : ($event->event_date ? Carbon::parse($event->event_date) : null);
 
-            $isToday = $ticketDate && $ticketDate->isSameDay($now);
+            $entryStart = $ticket && $ticket->entry_start_time
+                ? Carbon::parse($ticket->entry_start_time)
+                : ($event->start_time ? Carbon::parse($event->start_time) : null);
+
+            $entryEnd   = $ticket && $ticket->entry_end_time
+                ? Carbon::parse($ticket->entry_end_time)
+                : ($event->end_time ? Carbon::parse($event->end_time) : null);
+
+            // 🟢 2️⃣ Evaluar si está en el horario permitido
+            $isToday = $entryDate && $entryDate->isSameDay($now);
             $isWithinTime = $isToday && $entryStart && $entryEnd && $now->between($entryStart, $entryEnd);
 
-            $isActive = true;
+            $isActive = $isWithinTime;
 
-            $statusMessage = $isActive
-                ? '🟢 El evento está activo en este momento.'
-                : ($isToday
-                    ? '🕓 El evento es hoy, pero aún no está en su rango horario.'
-                    : '🔴 Este evento no está activo en la fecha actual.');
+            // 🟠 3️⃣ Generar mensaje adecuado
+            if (!$entryDate) {
+                $statusMessage = '⚠️ No se ha definido una fecha de ingreso para este ticket ni para el evento.';
+            } elseif ($isWithinTime) {
+                $statusMessage = '🟢 El evento está activo en este momento.';
+            } elseif ($isToday) {
+                $statusMessage = '🕓 El evento es hoy, pero aún no está en su rango horario.';
+            } else {
+                $statusMessage = '🔴 Este evento no está activo en la fecha actual.';
+            }
 
-            // 👶 Obtener los menores relacionados (si existen)
+            // 👶 4️⃣ Obtener menores relacionados (si existen)
             $minors = $a->minors()->get(['full_name', 'age'])->map(function ($minor) {
-                    return [
-                        'full_name' => $minor->full_name,
-                        'age' => $minor->age,
-                    ];
-                });
+                return [
+                    'full_name' => $minor->full_name,
+                    'age' => $minor->age,
+                ];
+            });
+
+            // 5️⃣ Armar el resultado
             return [
                 'id' => $event->id,
                 'name' => $event->name,
                 'description' => $event->description ?? 'Sin descripción',
-                'date' => $ticket->entry_date ?? 'Sin fecha',
-                'start_time' => $ticket->entry_start_time ?? 'No especificada',
-                'end_time' => $ticket->entry_end_time ?? 'No especificada',
+                'date' => optional($entryDate)->format('Y-m-d') ?? 'Sin fecha',
+                'start_time' => optional($entryStart)->format('H:i') ?? 'No especificada',
+                'end_time' => optional($entryEnd)->format('H:i') ?? 'No especificada',
                 'place' => $event->address ?? 'Lugar no especificado',
                 'is_active_now' => $isActive,
                 'status_message' => $statusMessage,

@@ -56,6 +56,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const eventId = eventSelect.value;
             if (!eventId) return callback();
 
+            // 🔹 limpiar resultados previos del autocomplete
+            this.clearOptions();
             fetch(`{{ route('event.buscarCedulas') }}?event_id=${eventId}&query=${query}`)
                 .then(response => response.json())
                 .then(data => {
@@ -89,14 +91,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 🎯 Escuchar cambios del select de evento
     eventSelect.addEventListener('change', function () {
+        cedulaSelect.clear(true);
+        cedulaSelect.clearOptions();
+        resultDiv.innerHTML = '';
+
         if (this.value) {
             cedulaSelect.enable();
-            cedulaSelect.clear(); // limpiar si ya tenía algo
+            cedulaSelect.focus();
         } else {
-            cedulaSelect.clear();
             cedulaSelect.disable();
         }
     });
+
 
 
     // 🔎 Verificación de ingreso
@@ -155,6 +161,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     // Si tiene un evento activo, marcar como ingresado
                         if (e.is_active_now) {
+                            playSound(true);
                             // Petición para registrar ingreso
 
                             fetch(`{{ url('event-assistant-2') }}/${e.event_assistant_id}/register-entry`, {
@@ -212,6 +219,8 @@ document.addEventListener('DOMContentLoaded', function () {
                                 }
                             })
 
+                        }else{
+                            playSound(false);
                         }
 
                     return `
@@ -262,7 +271,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     window.lucide.createIcons();
                 }
 
-                playSound(true);
 
             } else {
                 showAlert('danger', 'alert-octagon', `❌ ${data.message}`);
@@ -270,9 +278,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             setTimeout(() => {
-                cedulaSelect.clear();   // limpia el valor seleccionado
-                cedulaSelect.tomselect.destroy();
-                cedulaSelect.focus();   // vuelve a enfocar el campo TomSelect
+                cedulaSelect.clear(true);      // limpia el valor
+                cedulaSelect.clearOptions();   // borra las opciones cargadas
+                cedulaSelect.focus();          // vuelve a enfocar el campo
             }, 300);
         })
         .catch(error => {

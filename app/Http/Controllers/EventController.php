@@ -373,15 +373,26 @@ class EventController extends Controller
 
         $validatedData = $request->validate($validationRules);
 
-        // Crear o actualizar usuario
-        $user = User::where('email', $request->email)
-            ->orWhere('document_number', $request->document_number)
-            ->first();
+        // Crear o actualizar usuario de forma segura
+        $user = null;
 
-        if ($user) {
-            $user->update($validatedData);
-        } else {
+        // Solo buscar si al menos uno de los dos campos tiene valor
+        if (!empty($request->email) || !empty($request->document_number)) {
+            $user = User::where(function ($query) use ($request) {
+                if (!empty($request->email)) {
+                    $query->where('email', $request->email);
+                }
+                if (!empty($request->document_number)) {
+                    $query->orWhere('document_number', $request->document_number);
+                }
+            })->first();
+        }
+
+        // Si no se encontró o no tiene identificadores únicos válidos, crear uno nuevo
+        if (!$user) {
             $user = User::create(array_merge($validatedData, ['status' => false]));
+        } else {
+            $user->update($validatedData);
         }
 
         $userName = $user->name ? $user->name . " " . $user->lastname : null;

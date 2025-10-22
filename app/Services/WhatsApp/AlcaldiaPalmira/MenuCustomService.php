@@ -79,9 +79,11 @@ class MenuCustomService
         foreach ($horarios as $horario) {
             if (empty($horario['available'])) continue; // Solo mostrar los que tienen cupo
 
+            $hourStart = \Carbon\Carbon::parse($horario['start'])->format('h:i A');
+            $hourEnd = \Carbon\Carbon::parse($horario['end'])->format('h:i A');
             $rows[] = [
                 'id' => 'seleccion_horario_' . $fecha. "$" .$horario['start']."|".$horario['end']."|".$horario['ticket_type_id'],
-                'title' => "🕒 {$horario['start']} - {$horario['end']}",
+                'title' => "🕒 {$hourStart} - {$hourEnd}",
                 'description' => "Clic para reservar — 📦 {$horario['remaining']} de {$horario['capacity']} disponibles"
             ];
         }

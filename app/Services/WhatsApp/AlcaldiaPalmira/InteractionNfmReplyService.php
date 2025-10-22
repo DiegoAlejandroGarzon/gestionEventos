@@ -105,14 +105,18 @@ class InteractionNfmReplyService
                     // Extraer datos necesarios
                     $userName = $data['userName'] ?? 'Asistente';
                     $event = $data['event'];
+                    $ticketType = $data['ticketType'];
+                    $numberIdentification = $data['numberIdentification'];
+                    $assistantGuid = $ticketType["id"]."$".$data['assistantGuid'];
 
                     $eventName = $event['name'] ?? 'Evento sin nombre';
                     $location = $event['address'] ?? 'Ubicación no disponible';
 
                     // Formatear fecha y hora (usa Carbon)
-                    $fecha = \Carbon\Carbon::parse($event['event_date'])->locale('es')->isoFormat('dddd D [de] MMMM');
-                    $hora = \Carbon\Carbon::parse($event['start_time'])->format('h:i A');
-                    $dateTime = $fecha . ', ' . $hora;
+                    $fecha = \Carbon\Carbon::parse($ticketType['entry_date'])->locale('es')->isoFormat('dddd D [de] MMMM');
+                    $hora = \Carbon\Carbon::parse($ticketType['entry_start_time'])->format('h:i A');
+                    $hora_fin = \Carbon\Carbon::parse($ticketType['entry_end_time'])->format('h:i A');
+                    $dateTime = $fecha . ', ' . $hora." a ".$hora_fin;
 
                     // QR Code URL (ajusta según tus rutas reales)
                     $qrCodeUrl = url("/event/qrcode/" . $data['idEventAssistant']);
@@ -123,19 +127,30 @@ class InteractionNfmReplyService
                         $eventName,
                         $location,
                         $dateTime,
-                        $qrCodeUrl
+                        $numberIdentification,
+                        $assistantGuid
                     );
 
                     // ✅ Enviar mensaje por WhatsApp (sin plantilla)
-                    $responseTplArr = $messageService->sendMessageNotTemplate(
-                        $this->__externalPhoneNumber,
-                        $responseText,
-                        "Inscripción confirmada",
-                        false,
-                        null
-                    );
+                    $responseTplArr = $messageService->sendMessageNotTemplate($this->__externalPhoneNumber,$responseText,"Inscripción confirmada",false,null);
+                    // ingresamos la auto respuesta
+                    $queryService->storeResponseAutoBot("Respuesta automática",null,"text","auto_text",$responseTplArr);
                 }else{
-                    
+                    $fecha = $paramsTemplate[0]['text'];
+                    $hora = $paramsTemplate[1]['text'];
+                    $cedula = $response_json['number_identification'];
+                    $guid = $paramsTemplate[2]['text'];
+                    switch($response["message"]){
+                        case "El usuario ya está inscrito en este evento.":
+                            // ✅ Generar mensaje de confirmación
+                            $responseText = $messageCustomNotTemplateService->getAlreadyRegisteredMessage($cedula,$fecha,$hora,$guid);
+
+                            // ✅ Enviar mensaje por WhatsApp (sin plantilla)
+                            $responseTplArr = $messageService->sendMessageNotTemplate($this->__externalPhoneNumber,$responseText,"Inscripción confirmada",false,null);
+                            // ingresamos la auto respuesta
+                            $queryService->storeResponseAutoBot("Respuesta automática",null,"text","auto_text",$responseTplArr);
+                            break;
+                    }
                 }
                 break;
             

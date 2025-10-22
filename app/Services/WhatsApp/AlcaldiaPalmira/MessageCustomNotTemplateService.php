@@ -15,17 +15,32 @@ class MessageCustomNotTemplateService
         return $message;
     }
 
-    public function getRegistrationConfirmationMessage(string $userName, string $eventName, string $location, string $dateTime, string $qrCodeUrl): string
+    public function getRegistrationConfirmationMessage(string $userName, string $eventName, string $location, string $dateTime, string $cedula, string $ticketId): string
     {
         $message = "--\n\n"
             . "✅ *Inscripción confirmada*\n\n"
-            . "Hola *{$userName}*, tu registro al evento *{$eventName}* ha sido exitoso. 🎉\n\n"
+            . "Hola *{$userName},* tu registro al evento *El Pesebre Más Grande del Mundo* ha sido exitoso. 🎉\n\n"
             . "📍 *Lugar:* {$location}\n"
-            . "📅 *Fecha y hora:* {$dateTime}\n\n"
-            . "🔐 *Código QR de ingreso:*\n"
-            . "{$qrCodeUrl}\n\n"
-            . "🔸 Recuerda llegar con anticipación. El ingreso está sujeto a aforo disponible.\n\n"
+            . "📅 *Fecha y hora:* {$dateTime}\n"
+            . "🎟️ *Ticket ID:* TCK-{$ticketId}(guárdalo por si necesitas consultar tu proceso)\n"
+            . "🪪 *Cédula asociada al registro:* {$cedula}\n\n"
+            . "⚠️ *Importante:* El ingreso al evento será únicamente presentando tu *cédula de ciudadanía*. Es *obligatorio* portarla ese día, ya que será *validada al ingreso*.\n\n"
+            . "🔸 Recuerda llegar con anticipación\n\n"
             . "¡Gracias por ser parte de esta gran experiencia!";
+
+        return $message;
+    }
+    
+    public function getAlreadyRegisteredMessage(string $cedula, string $date, string $time, string $ticketId): string
+    {
+        $message = "--\n\n"
+            . "⚠️ *Ya tienes una reserva activa*\n\n"
+            . "La cédula *{$cedula}* ya cuenta con una reserva para el evento *'El Pesebre Más Grande del Mundo'*.\n\n"
+            . "📅 *Fecha:* {$date}\n"
+            . "🕒 *Hora:* {$time}\n"
+            . "🎟️ *Ticket ID:* TCK-{$ticketId}(guárdalo por si necesitas gestionar tu proceso)\n\n"
+            . "🔸 Si necesitas cambiar tu reserva, por favor comunícate con el equipo de atención.\n\n"
+            . "Gracias por tu interés en participar. ¡Nos vemos en el evento!";
 
         return $message;
     }

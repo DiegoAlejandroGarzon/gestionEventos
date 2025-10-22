@@ -147,6 +147,9 @@ class InteractionListReplyService
                     $ticketIdSelected = explode("|", $ticketIdSelected);
                     $hourStart = $ticketIdSelected[0];
                     $hourEnd = $ticketIdSelected[1];
+                    $hourStart = \Carbon\Carbon::parse($hourStart)->format('h:i A');
+                    $hourEnd = \Carbon\Carbon::parse($hourEnd)->format('h:i A');
+                    
                     $ticketIdSelected = $ticketIdSelected[2];
 
                     $eventService = new EventService();

@@ -90,8 +90,8 @@ class PublicRegistrationService
 
             $validatedData = $request->validate($validationRules);
 
-            $user = User::where('email', $request->email)
-                ->orWhere('document_number', $request->document_number)
+            $user = User::where('document_number', $request->document_number)
+                ->orWhere('email', $request->email)
                 ->first();
 
             if ($user) {
@@ -105,15 +105,17 @@ class PublicRegistrationService
                 $user->assignRole($assistantRole);
             }
 
+            $ticketType = TicketType::find($request->id_ticket);
             $eventAssistant = EventAssistant::where('event_id', $event->id)
                 ->where('user_id', $user->id)
+                ->where('ticket_type_id', $ticketType->id)
                 ->first();
 
             if ($eventAssistant) {
                 return $this->response('El usuario ya está inscrito en este evento.', $returnJson, false);
             }
 
-            $ticketType = TicketType::find($request->id_ticket);
+            
             if (!$ticketType) {
                 return $this->response('El tipo de entrada seleccionado no es válido.', $returnJson, false);
             }
@@ -146,7 +148,7 @@ class PublicRegistrationService
                 'ticket_type_id' => $ticketType->id,
                 'has_entered' => false,
                 'guardian_id' => $guardianId,
-                'guid' => $request->input('guid') ?? null
+                'guid' => $request->guid ?? null
             ]);
 
             if (isset($coupon)) {
@@ -194,11 +196,14 @@ class PublicRegistrationService
             }
 
             $qrcode = $eventAssistant->qrCode;
+            $ticketType = $eventAssistant->ticketType;
             $idEventAssistant = $eventAssistant->id;
+            $assistantGuid = $request->guid;
+            $numberIdentification = $request->document_number;
             $message = 'Inscripción exitosa.';
             $userName = $user->name ? $user->name . " " . $user->lastname : null;
 
-            $data = compact('event', 'qrcode', 'message', 'userName', 'idEventAssistant');
+            $data = compact('event', 'qrcode', 'message', 'userName', 'idEventAssistant', 'ticketType', 'assistantGuid', 'numberIdentification');
 
             return $this->response($data, $returnJson, true);
         } catch (\Exception $e) {

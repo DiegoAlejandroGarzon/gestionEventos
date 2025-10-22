@@ -1,7 +1,7 @@
 (function () {
     "use strict";
 
-    console.log(chartData);
+    // console.log(chartData);
     // Gráfico de asistencia general
     if ($("#report-pie-chart").length) {
         const chartColors = () => [

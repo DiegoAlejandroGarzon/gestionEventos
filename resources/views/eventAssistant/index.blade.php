@@ -473,7 +473,7 @@
             .then(response => response.json())
             .then(data => {
                 // Aquí puedes recargar los cupones y actualizar la tabla
-                loadCoupons(eventId);
+                // loadCoupons(eventId);
             })
             .catch(error => console.error('Error:', error));
         });
@@ -499,7 +499,7 @@
                     });
                 });
         }
-        loadCoupons({{$idEvent}});
+        // loadCoupons({{$idEvent}});
     </script>
 
     <!-- END: Delete Confirmation Modal -->

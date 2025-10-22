@@ -28,7 +28,7 @@ class InteractionListReplyService
         $queryService->storeResponseAutoUser(
             $list_reply["title"], 
             $message_whatsapp_id, 
-            "response_text_bttn_replay",
+            "response_text_list_reply",
             $list_reply["id"],
             $timestamp
         );
@@ -158,7 +158,7 @@ class InteractionListReplyService
                     $templateParams = [
                         ['type' => 'text', 'text' => $fechaFormateada],
                         ['type' => 'text', 'text' => $hourStart." a ".$hourEnd],
-                        ['type' => 'text', 'text' => $ticketIdSelected."|".$guid]
+                        ['type' => 'text', 'text' => $ticketIdSelected."$".$guid]
                     ];
                     $arrResponse = $messageService->sendMessage(
                             $this->__externalPhoneNumber, 

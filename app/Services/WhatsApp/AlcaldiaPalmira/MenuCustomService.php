@@ -164,8 +164,6 @@ class MenuCustomService
         $curlService = new CurlService($this->__numberWhatssAppId);
         $curlService->curlFacebookApi($data, $this->__numberWhatssAppId);
 
-        file_put_contents(storage_path() . '/logs/log_webhook.txt', "<- MENU_DIAS ->" . json_encode($sections) . PHP_EOL, FILE_APPEND);
-
         return [
             'type' => 'menu_list',
             'header' => $headerText,

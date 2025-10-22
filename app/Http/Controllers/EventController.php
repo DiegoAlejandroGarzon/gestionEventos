@@ -299,6 +299,8 @@ class EventController extends Controller
 
     public function submitPublicRegistration(Request $request, $public_link)
     {
+        //$service = new PublicRegistrationService();
+        //return $service->handle($request, $public_link, false); // Vista
         $event = Event::where('public_link', $public_link)->firstOrFail();
 
         // Verificar si se proporcionó un código de cortesía

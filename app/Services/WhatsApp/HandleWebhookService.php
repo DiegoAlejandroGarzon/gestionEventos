@@ -49,7 +49,7 @@ class HandleWebhookService
                     $interactionService = new InteractionService($this->__externalPhoneNumber, "855752667617564");
                     switch($message['type']){
                         case "interactive":
-                            $interactionService->actionInteractive($message, $message_whatsapp_id, $timestamp, ($type_closed??null));
+                            $interactionService->actionInteractive($message, $message_whatsapp_id, $timestamp, ($type_closed??null), $context);
                             break;
                         case "text":
                             // ingresamos el texto

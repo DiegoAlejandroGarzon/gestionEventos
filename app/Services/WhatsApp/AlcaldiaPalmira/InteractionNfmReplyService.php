@@ -7,6 +7,9 @@ use App\Services\WhatsApp\QueryService;
 use App\Services\WhatsApp\AlcaldiaPalmira\MessageCustomNotTemplateService;
 use App\Services\EventService;
 use App\Services\WhatsApp\AlcaldiaPalmira\MenuCustomService;
+use App\Services\PublicRegistrationService;
+use Illuminate\Http\Request;
+use App\Models\ConversationsMessages;
 
 class InteractionNfmReplyService
 {
@@ -20,125 +23,123 @@ class InteractionNfmReplyService
         $this->__messageCustomNotTemplateService = new MessageCustomNotTemplateService();
     }
     
-    public function verified($list_reply, $message_whatsapp_id, $timestamp, $type_closed=null){
+    public function verified($nfm_reply, $message_whatsapp_id, $timestamp, $type_closed=null, $context=null){
         
+        $response_json = json_decode($nfm_reply['response_json'], true);
         // ingresamos la respuesta del usuario en BD y enviamos pusher
         $queryService = new QueryService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
         $queryService->storeResponseAutoUser(
-            $list_reply["title"], 
+            "Envio de formulario", 
             $message_whatsapp_id, 
-            "response_text_bttn_replay",
-            $list_reply["id"],
+            "response_text_nfm_reply",
+            $response_json['request_action'],
             $timestamp
         );
+        file_put_contents(storage_path().'/logs/log_webhook.txt', "<- CONTEXT_NFM ->" .json_encode($response_json['request_action']). PHP_EOL, FILE_APPEND);
+        // consultamos el id del ticket
+        $conversationsMessages = new ConversationsMessages();
+        $dataConvMessage = $conversationsMessages->where("message_what_id", $context["id"])->first();
+        file_put_contents(storage_path().'/logs/log_webhook.txt', "<- CONTEXT_NFM 222 ->" .json_encode($dataConvMessage). PHP_EOL, FILE_APPEND);
+        $paramsTemplate = $dataConvMessage->params_template;
+        $arrParams = explode("$", $paramsTemplate[2]['text']);
         
         $messageCustomNotTemplateService = new MessageCustomNotTemplateService();
         // enviamos la respuesta al cliente
         $messageService = new MessageService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
         
-        switch($list_reply['id']){
+        switch($response_json['request_action']){
             
             // reserva
-            case "reservar_boletas":
-                // consultamos los aforos de los 3 dias actuales
-                $eventService = new EventService();
-                $arrDataDaysFrees = $eventService->getAvailableDaysOnly();
-                $menuCustomService = new MenuCustomService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
-                $sendEstructuraa = $menuCustomService->sendMenu_selectDia($arrDataDaysFrees);
+            case "register_boletas":
+                $public_link = "f3c6707b-d9f7-4051-95ad-6228c555bd84";
+                // Datos simulados del formulario que se enviarían por POST
+                $formData = [
+                    'name' => $response_json['first_name'] ?? 'Sin nombre',
+                    'lastname' => null,
+                    'email' => $response_json['email'] ?? null,
+                    'type_document' => 'CC',
+                    'document_number' => $response_json['number_identification'] ?? null,
+                    'phone' => $response_json['phone'] ?? null,
+                    'city_id' => null,
+                    'birth_date' => null,
+
+                    'id_ticket' => $arrParams[0],
+                    'guid' =>  $arrParams[1],
+                    'seat_id' => null, // solo si ese ticket usa asientos
+                    'courtesy_code' => null, // opcional
+
+                    'guardian_id' => null,
+
+                    // Array de menores si se van a registrar
+                    /*'minors' => [
+                        ['full_name' => 'Lucía López', 'age' => 8],
+                        ['full_name' => 'Tomás López', 'age' => 5],
+                    ],*/
+
+                ];
+
+                // Crear objeto Request como si viniera del navegador
+                $request = Request::create(
+                    "/event/register/$public_link", // URL fake (solo para contexto)
+                    'POST',
+                    $formData
+                );
+
+                // Invocar el service
+                $service = new PublicRegistrationService();
+                $responseRaw = $service->handle($request, $public_link, true); // true = respuesta JSON
+                $response = json_decode(json_encode($responseRaw->getData()), true);
                 
-                $queryService->storeResponseAutoBot(
+                file_put_contents(storage_path().'/logs/log_webhook.txt', "<- RESPONSE 222 ->" .json_encode($response). PHP_EOL, FILE_APPEND);
+                /*$queryService->storeResponseAutoBot(
                     "Respuesta automática",
                     null,
                     "text",
                     "auto_text",
                     $sendEstructuraa
-                );
-                break;
-            
-            case "informacion_evento":
-                $responseText = "🎄 *El Pesebre Más Grande del Mundo – Palmira 2025*\n\n";
-                $responseText .= "📍 *Ubicación:* Bosque Municipal, Palmira, Valle del Cauca.\n";
-                $responseText .= "🔗 Ver en Google Maps: https://maps.app.goo.gl/oqFJ21xZWmnkTDGz7"; // <- reemplaza este enlace por el correcto
-                $responseText .= "\n📅 *Fechas:* Del 1 al 31 de diciembre de 2025.\n";
-                $responseText .= "🕐 *Horario:* Todos los días de 5:00 P.M. a 11:00 P.M.\n\n";
-                $responseText .= "🎟️ *Entrada con boleta reservada previamente.*\n";
-                $responseText .= "Puedes hacer la reserva desde el menú principal seleccionando *'Reservar boletas'*. \n\n";
-                $responseText .= "🙌 ¡Te esperamos para vivir juntos la magia de la Navidad en Palmira!";
+                );*/
+                // ✅ Validar que la inscripción fue exitosa
+                if (isset($response['success']) && $response['success'] === true && isset($response['data'])) {
+                    $data = $response['data'];
 
-                $responseTplArr = $messageService->sendMessageNotTemplate($this->__externalPhoneNumber, $responseText, $list_reply["title"], false, null);
-                $queryService->storeResponseAutoBot(
-                    "Respuesta automática",
-                    null,
-                    "text",
-                    "auto_text",
-                    $responseTplArr
-                );
+                    // Extraer datos necesarios
+                    $userName = $data['userName'] ?? 'Asistente';
+                    $event = $data['event'];
 
-                break;
+                    $eventName = $event['name'] ?? 'Evento sin nombre';
+                    $location = $event['address'] ?? 'Ubicación no disponible';
 
-            
-            // preguntas
-            case "preguntas_frecuentes":
-                $responseText = "❓ *Preguntas Frecuentes – El Pesebre Más Grande del Mundo 2025*\n\n";
-                $responseText .= "🔸 *¿La entrada tiene costo?*\n";
-                $responseText .= "No, la entrada es gratuita pero debes reservar tus boletas previamente desde el menú principal.\n\n";
+                    // Formatear fecha y hora (usa Carbon)
+                    $fecha = \Carbon\Carbon::parse($event['event_date'])->locale('es')->isoFormat('dddd D [de] MMMM');
+                    $hora = \Carbon\Carbon::parse($event['start_time'])->format('h:i A');
+                    $dateTime = $fecha . ', ' . $hora;
 
-                $responseText .= "🔸 *¿Dónde se realiza el evento?*\n";
-                $responseText .= "En el *Bosque Municipal de Palmira*. Puedes ver la ubicación aquí:\n";
-                $responseText .= "📍 https://maps.app.goo.gl/oqFJ21xZWmnkTDGz7";
+                    // QR Code URL (ajusta según tus rutas reales)
+                    $qrCodeUrl = url("/event/qrcode/" . $data['idEventAssistant']);
 
-                $responseText .= "\n\n🔸 *¿Puedo asistir con mi familia?*\n";
-                $responseText .= "Sí, el evento está diseñado para todas las edades. Es un espacio familiar y seguro.\n\n";
-
-                $responseText .= "🔸 *¿Qué debo llevar?*\n";
-                $responseText .= "Debes presentar tu *documento de identidad* y la *reserva enviada por WhatsApp* (boleta digital o impresa). También te recomendamos asistir con ropa cómoda.\n\n";
-
-                $responseText .= "🧑‍🎄 *¿Tienes más dudas?*\n";
-                $responseText .= "Escribe *MENU* para volver al inicio y explorar otras opciones.";
-
-                $responseTplArr = $messageService->sendMessageNotTemplate($this->__externalPhoneNumber, $responseText, $list_reply["title"], false, null);
-                $queryService->storeResponseAutoBot(
-                    "Respuesta automática",
-                    null,
-                    "text",
-                    "auto_text",
-                    $responseTplArr
-                );
-
-                break;
-            
-            default:
-                if (str_starts_with($list_reply['id'], 'seleccion_dia_')) {
-                    $fechaSeleccionada = str_replace('seleccion_dia_', '', $list_reply['id']);
-
-                    $eventService = new EventService();
-                    $availabilityData = $eventService->getDaysAndTimesFrees($fechaSeleccionada);
-
-                    if (!empty($availabilityData)) {
-                        $menuCustomService = new MenuCustomService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
-                        $sendEstructuraa = $menuCustomService->sendMenu_selectHorario($availabilityData, $fechaSeleccionada);
-                        $responseText = "Respuesta automática";
-                    } else {
-                        $sendEstructuraa = [];
-                        $responseText = "🚫 No se encontraron horarios disponibles para el día seleccionado.";
-                        $messageService = new MessageService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
-                        $responseTplArr = $messageService->sendMessageNotTemplate($this->__externalPhoneNumber, $responseText, $list_reply["title"], false, null);
-
-                        $queryService = new QueryService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
-                        $queryService->storeResponseAutoBot("Respuesta automática", null, "text", "auto_text", $responseTplArr);
-                    }
-                    
-                    $queryService->storeResponseAutoBot(
-                        $responseText,
-                        null,
-                        "text",
-                        "auto_text",
-                        $sendEstructuraa
+                    // ✅ Generar mensaje de confirmación
+                    $responseText = $messageCustomNotTemplateService->getRegistrationConfirmationMessage(
+                        $userName,
+                        $eventName,
+                        $location,
+                        $dateTime,
+                        $qrCodeUrl
                     );
 
+                    // ✅ Enviar mensaje por WhatsApp (sin plantilla)
+                    $responseTplArr = $messageService->sendMessageNotTemplate(
+                        $this->__externalPhoneNumber,
+                        $responseText,
+                        "Inscripción confirmada",
+                        false,
+                        null
+                    );
+                }else{
+                    
                 }
                 break;
-
+            
+            
         }
     }
 }

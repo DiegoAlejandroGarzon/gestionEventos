@@ -31,6 +31,7 @@ class ConversationsMessages extends Model
         'created_by',
         'updated_by',
         'received_at',
+        'params_template',
     ];
 
     // Define los campos de tipo fecha para que Laravel los maneje como Carbon
@@ -51,4 +52,13 @@ class ConversationsMessages extends Model
     {
         return $this->belongsTo(Conversation::class, 'conversations_id');
     }
+    
+    public function getParamsTemplateAttribute($value)
+    {
+        $decoded = json_decode($value, true);
+
+        // Si la conversión falla, devuelve el valor original o null
+        return is_array($decoded) ? $decoded : [];
+    }
+
 }

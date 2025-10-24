@@ -18,8 +18,8 @@ class TicketTypeSeeder extends Seeder
         $eventId = 2;
 
         // Rango de fechas
-        $startDate = Carbon::createFromFormat('Y-m-d', '2024-11-15');
-        $endDate = Carbon::createFromFormat('Y-m-d', '2025-01-15');
+        $startDate = Carbon::createFromFormat('Y-m-d', '2025-11-15');
+        $endDate = Carbon::createFromFormat('Y-m-d', '2026-01-15');
 
         // Horarios en formato 24 horas (PM)
         $horarios = [

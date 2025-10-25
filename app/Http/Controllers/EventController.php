@@ -704,6 +704,72 @@ class EventController extends Controller
         ]);
     }
 
+    public function getLocalRecords(Request $request)
+    {
+        $request->validate([
+            'event_id' => 'required|integer|exists:events,id',
+            'date' => 'required|date',
+        ]);
 
+        $event = Event::findOrFail($request->event_id);
+        $requestedDate = Carbon::parse($request->date)->format('Y-m-d');
+
+        // 1) Tickets que explícitamente tienen entry_date = requestedDate
+        $ticketIdsWithDate = TicketType::where('event_id', $event->id)
+            ->whereDate('entry_date', $requestedDate)
+            ->pluck('id')
+            ->toArray();
+        // 2) Si la fecha del evento coincide con la solicitada, incluir ticket types sin entry_date
+        $ticketIds = $ticketIdsWithDate;
+        if ($event->event_date) {
+            $eventDate = Carbon::parse($event->event_date)->format('Y-m-d');
+            if ($eventDate === $requestedDate) {
+                $ticketIdsWithoutDate = TicketType::where('event_id', $event->id)
+                    ->whereNull('entry_date')
+                    ->pluck('id')
+                    ->toArray();
+
+                // unir arrays y eliminar duplicados por si acaso
+                $ticketIds = array_values(array_unique(array_merge($ticketIdsWithDate, $ticketIdsWithoutDate)));
+            }
+        }
+
+        // Si no hay ticket types que coincidan, devolvemos vacío
+        if (empty($ticketIds)) {
+            return response()->json([
+                'success' => true,
+                'records' => [],
+                'message' => 'No hay registros para la fecha/tipo de ticket seleccionados.'
+            ]);
+        }
+
+        // Obtener asistentes cuya ticket_type_id esté en la lista y que pertenezcan al evento
+        $assistants = EventAssistant::with(['user', 'ticketType', 'minors'])
+            ->where('event_id', $event->id)
+            ->whereIn('ticket_type_id', $ticketIds)
+            ->get()
+            ->map(function ($a) {
+                return [
+                    'id' => $a->id,
+                    'event_id' => $a->event_id,
+                    'document_number' => $a->user->document_number,
+                    'name' => trim(($a->user->name ?? '') . ' ' . ($a->user->lastname ?? '')),
+                    'email' => $a->user->email,
+                    'ticket' => $a->ticketType ?? null,
+                    'ticket_id' => $a->ticket_type_id,
+                    'minors' => $a->minors->isNotEmpty()
+                        ? $a->minors->map(fn($m) => [
+                            'full_name' => $m->full_name,
+                            'age' => $m->age
+                        ])->values()
+                        : collect(), // colección vacía si no tiene menores
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'records' => $assistants,
+        ]);
+    }
 
 }

@@ -7,6 +7,27 @@
 @section('subcontent')
 <div class="container py-5">
     <h2 class="intro-y mt-10 text-lg font-medium text-center">Verificación de Entrada por Cédula</h2>
+    <div class="m-2 border-t pt-4 mt-4">
+        <h3 class="text-lg font-semibold mb-2">🔽 Modo Offline</h3>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+                <x-base.form-label for="offlineDate">Seleccionar Fecha</x-base.form-label>
+                <input type="date" id="offlineDate" class="form-control w-full">
+            </div>
+
+            <div class="flex items-end">
+                <button id="downloadLocalBtn"
+                    class="btn btn-primary w-full"
+                    type="button">
+                    💾 Descargar Registros de Forma Local
+                </button>
+            </div>
+        </div>
+
+        <p id="offlineStatus" class="text-sm text-slate-500 mt-2"></p>
+    </div>
+
     <div class="mt-5 box">
         <!-- Selector de Evento -->
         <div class="m-2">
@@ -50,25 +71,32 @@ document.addEventListener('DOMContentLoaded', function () {
         valueField: 'document_number',
         labelField: 'display',
         searchField: 'document_number',
-        load: function (query, callback) {
+        load: async function (query, callback) {
             if (query.length < 4) return callback();
 
             const eventId = eventSelect.value;
             if (!eventId) return callback();
 
-            // 🔹 limpiar resultados previos del autocomplete
             this.clearOptions();
+            console.log("🔍 Buscando cédula:", query);
+            const localMatches = await searchLocalByCedula(eventId, query);
+            // console.log("🔍 Resultados locales para", query, localMatches);
+            if (localMatches.length > 0) {
+                console.log("✅ Resultados obtenidos desde IndexedDB");
+                localMatches.forEach(r => r.display = `${r.document_number} — ${r.name}`);
+                callback(localMatches);
+                return;
+            }
+
             fetch(`{{ route('event.buscarCedulas') }}?event_id=${eventId}&query=${query}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Mostrar “documento — nombre”
                         data.results.forEach(r => {
                             r.display = `${r.document_number} — ${r.name} ${r.lastname}`;
                         });
                         callback(data.results);
 
-                        // ✅ Autoseleccionar si hay solo una coincidencia
                         if (data.results.length === 1) {
                             cedulaSelect.addItem(data.results[0].document_number);
                             executeVerification(data.results[0].document_number);
@@ -79,9 +107,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .catch(() => callback());
         },
+
         onChange: function (value) {
+            console.log("verificando offline si esta:", value);
             if (value) {
-                executeVerification(value);
+                verifyDocumentOfflineFirst(value);
             }
         },
     });
@@ -107,6 +137,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 🔎 Verificación de ingreso
     function executeVerification(documentNumber) {
+
+        console.log("✅ Encontrado en base servidor", localRecord);
         const eventId = eventSelect.value;
         if (!eventId) {
             showAlert('warning', 'alert-circle', '⚠️ Seleccione primero un evento activo.');
@@ -297,6 +329,207 @@ document.addEventListener('DOMContentLoaded', function () {
             : 'https://actions.google.com/sounds/v1/cartoon/concussive_hit_guitar_boing.ogg'
         );
         audio.play();
+    }
+
+    // =======================================
+    // 🧠 IndexedDB — Modo Offline
+    // =======================================
+    const DB_NAME = 'eventVerificationDB';
+    const STORE_NAME = 'assistants';
+    const DB_VERSION = 1;
+    const SECURITY_KEY = "123"; // Clave de seguridad local
+
+    let db;
+
+    // Inicializar base local
+    function initDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            request.onupgradeneeded = function (e) {
+                db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    const store = db.createObjectStore(STORE_NAME, { keyPath: 'document_number' });
+                }
+            };
+            request.onsuccess = function (e) {
+                db = e.target.result;
+                resolve(db);
+            };
+            request.onerror = () => reject('❌ Error inicializando IndexedDB');
+        });
+    }
+
+    // Guardar registros en local
+    function saveToLocal(records) {
+        return new Promise(async (resolve) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+
+            store.clear(); // Limpiar antes de guardar
+
+            records.forEach(r => store.put(r));
+
+            tx.oncomplete = () => resolve(true);
+            tx.onerror = () => resolve(false);
+        });
+    }
+
+    // Buscar en local
+    async function findInLocal(documentNumber) {
+        return new Promise((resolve) => {
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const req = store.get(documentNumber);
+
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => resolve(null);
+        });
+    }
+
+    async function searchLocalByCedula(eventId, query) {
+        return new Promise((resolve) => {
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const results = [];
+
+            const req = store.openCursor();
+            req.onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    const value = cursor.value;
+                    if (
+                        value.document_number &&
+                        value.document_number.startsWith(query) &&
+                        value.event_id == eventId
+                    ) {
+                        results.push(value);
+                    }
+                    cursor.continue();
+                } else {
+                    resolve(results);
+                }
+            };
+            req.onerror = () => resolve([]);
+        });
+    }
+
+
+    // Descargar registros desde el servidor
+    async function downloadLocalData() {
+        console.log("⬇️ Descargando registros para modo offline...");
+        const eventId = eventSelect.value;
+        const date = document.getElementById('offlineDate').value;
+        const statusEl = document.getElementById('offlineStatus');
+
+        if (!eventId || !date) {
+            statusEl.textContent = "⚠️ Debe seleccionar un evento y una fecha.";
+            return;
+        }
+
+        const key = prompt("Ingrese la clave de seguridad para continuar:");
+        if (key !== SECURITY_KEY) {
+            alert("❌ Clave incorrecta.");
+            return;
+        }
+
+        statusEl.textContent = "⏳ Descargando registros...";
+
+        // Reiniciar DB
+        indexedDB.deleteDatabase(DB_NAME);
+
+        await initDB();
+
+        fetch(`{{ route('event.getLocalRecords') }}?event_id=${eventId}&date=${date}`)
+            .then(res => res.json())
+            .then(async data => {
+                if (data.success) {
+                    await saveToLocal(data.records);
+                    statusEl.textContent = `✅ ${data.records.length} registros guardados localmente.`;
+
+                    const saved = await getAllFromLocal();
+                    console.log("📦 Registros actualmente en IndexedDB:", saved);
+                } else {
+                    statusEl.textContent = "⚠️ No se pudo descargar la información.";
+                }
+            })
+            .catch(() => {
+                statusEl.textContent = "❌ Error de conexión con el servidor.";
+            });
+    }
+
+    async function getAllFromLocal() {
+        return new Promise((resolve) => {
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const req = store.openCursor();
+            const results = [];
+
+            req.onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    results.push(cursor.value);
+                    cursor.continue();
+                } else {
+                    resolve(results);
+                }
+            };
+            req.onerror = () => {
+                console.error("❌ Error al leer la base local");
+                resolve([]);
+            };
+        });
+    }
+
+    // Asociar al botón
+    document.getElementById('downloadLocalBtn').addEventListener('click', downloadLocalData);
+
+    // =======================================
+    // 🔍 Verificación: primero local, luego servidor
+    // =======================================
+    async function verifyDocumentOfflineFirst(documentNumber) {
+        const localRecord = await findInLocal(documentNumber);
+
+        if (localRecord) {
+            console.log("✅ Encontrado en base local", localRecord);
+            showAlert('success', 'check-circle', `Encontrado localmente: ${localRecord.name}`);
+            playSound(true);
+            return;
+        }
+
+        // Si no hay conexión, avisar
+        if (!navigator.onLine) {
+            showAlert('warning', 'alert-triangle', '⚠️ No hay conexión y el documento no está en base local.');
+            playSound(false);
+            return;
+        }
+
+        // Si hay conexión, usar flujo normal del servidor
+        executeVerification(documentNumber);
+    }
+
+    async function logAllLocalData() {
+        return new Promise((resolve) => {
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const req = store.openCursor();
+            const all = [];
+
+            req.onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    all.push(cursor.value);
+                    cursor.continue();
+                } else {
+                    console.log("📦 Contenido completo de IndexedDB:", all);
+                    resolve(all);
+                }
+            };
+
+            req.onerror = () => {
+                console.error("❌ Error leyendo IndexedDB");
+                resolve([]);
+            };
+        });
     }
 });
 </script>

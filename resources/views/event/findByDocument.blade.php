@@ -7,8 +7,8 @@
 @section('subcontent')
 <div class="container py-5">
     <h2 class="intro-y mt-10 text-lg font-medium text-center">Verificación de Entrada por Cédula</h2>
-    <div class="m-2 border-t pt-4 mt-4">
-        <h3 class="text-lg font-semibold mb-2">🔽 Modo Offline</h3>
+    <div class="p-3 mt-4 box">
+        <h3 class="text-lg font-semibold mb-2">Modo Offline</h3>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
@@ -28,7 +28,7 @@
         <p id="offlineStatus" class="text-sm text-slate-500 mt-2"></p>
     </div>
 
-    <div class="mt-5 box">
+    <div class="mt-5 p-3 box">
         <!-- Selector de Evento -->
         <div class="m-2">
             <x-base.form-label for="eventSelect">Seleccionar Evento Activo</x-base.form-label>
@@ -56,7 +56,7 @@
 <script src="https://unpkg.com/lucide@^0.267.0/dist/lucide.min.js"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async  function () {
     const documentSelect = document.getElementById('documentSelect');
     const eventSelect = document.getElementById('eventSelect');
     const resultDiv = document.getElementById('resultContainer');
@@ -138,7 +138,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // 🔎 Verificación de ingreso
     function executeVerification(documentNumber) {
 
-        console.log("✅ Encontrado en base servidor", localRecord);
         const eventId = eventSelect.value;
         if (!eventId) {
             showAlert('warning', 'alert-circle', '⚠️ Seleccione primero un evento activo.');
@@ -338,31 +337,37 @@ document.addEventListener('DOMContentLoaded', function () {
     const STORE_NAME = 'assistants';
     const DB_VERSION = 1;
     const SECURITY_KEY = "123"; // Clave de seguridad local
-
     let db;
+
+    async function getDB() {
+        if (db) return db; // si ya está abierta
+        db = await initDB(); // si no, inicializar
+        return db;
+    }
 
     // Inicializar base local
     function initDB() {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(DB_NAME, DB_VERSION);
             request.onupgradeneeded = function (e) {
-                db = e.target.result;
-                if (!db.objectStoreNames.contains(STORE_NAME)) {
-                    const store = db.createObjectStore(STORE_NAME, { keyPath: 'document_number' });
+                const database = e.target.result;
+                if (!database.objectStoreNames.contains(STORE_NAME)) {
+                    database.createObjectStore(STORE_NAME, { keyPath: 'document_number' });
                 }
             };
             request.onsuccess = function (e) {
-                db = e.target.result;
-                resolve(db);
+                console.log("✅ IndexedDB inicializada correctamente");
+                resolve(e.target.result);
             };
             request.onerror = () => reject('❌ Error inicializando IndexedDB');
         });
     }
 
     // Guardar registros en local
-    function saveToLocal(records) {
+    async function saveToLocal(records) {
+        dbInstance = await getDB()
         return new Promise(async (resolve) => {
-            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const tx = dbInstance.transaction(STORE_NAME, 'readwrite');
             const store = tx.objectStore(STORE_NAME);
 
             store.clear(); // Limpiar antes de guardar
@@ -376,8 +381,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Buscar en local
     async function findInLocal(documentNumber) {
+        const dbInstance = await getDB();
         return new Promise((resolve) => {
-            const tx = db.transaction(STORE_NAME, 'readonly');
+            const tx = dbInstance.transaction(STORE_NAME, 'readonly');
             const store = tx.objectStore(STORE_NAME);
             const req = store.get(documentNumber);
 
@@ -387,8 +393,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function searchLocalByCedula(eventId, query) {
+        dbInstance = await getDB()
         return new Promise((resolve) => {
-            const tx = db.transaction(STORE_NAME, 'readonly');
+            const tx = dbInstance.transaction(STORE_NAME, 'readonly');
             const store = tx.objectStore(STORE_NAME);
             const results = [];
 
@@ -486,30 +493,132 @@ document.addEventListener('DOMContentLoaded', function () {
     // =======================================
     // 🔍 Verificación: primero local, luego servidor
     // =======================================
+
     async function verifyDocumentOfflineFirst(documentNumber) {
+        const eventId = eventSelect.value;
         const localRecord = await findInLocal(documentNumber);
 
-        if (localRecord) {
-            console.log("✅ Encontrado en base local", localRecord);
-            showAlert('success', 'check-circle', `Encontrado localmente: ${localRecord.name}`);
+        // ============================================
+        // 🧠 Caso 1: Registro encontrado en la base local
+        // ============================================
+        if (localRecord && localRecord.event_id == eventId) {
+            console.log("✅ Encontrado en base local:", localRecord);
             playSound(true);
+
+            const resultDiv = document.getElementById('resultContainer');
+            const record = localRecord;
+
+            // 🎨 Estilos según horario
+            const now = new Date();
+            let statusMessage = "";
+            let statusColor = "text-slate-600 border-slate-300 bg-slate-50";
+
+            if (record.ticket.entry_date) {
+                const entryDate = new Date(record.ticket.entry_date);
+                const start = record.ticket.entry_start_time ? new Date(`${record.ticket.entry_date}T${record.ticket.entry_start_time}`) : null;
+                const end   = record.ticket.entry_end_time ? new Date(`${record.ticket.entry_date}T${record.ticket.entry_end_time}`) : null;
+
+                const isToday = entryDate.toDateString() === now.toDateString();
+                const isWithin = start && end && now >= start && now <= end;
+
+                if (isWithin) {
+                    statusMessage = "🟢 El evento está activo en este momento.";
+                    statusColor = "text-green-600 border-green-400 bg-green-50";
+                } else if (isToday) {
+                    statusMessage = "🕓 El evento es hoy, pero aún no está en su rango horario.";
+                    statusColor = "text-yellow-600 border-yellow-400 bg-yellow-50";
+                } else {
+                    statusMessage = "🔴 Este evento no está activo en la fecha actual.";
+                    statusColor = "text-red-600 border-red-400 bg-red-50";
+                }
+            } else {
+                statusMessage = "⚠️ No se ha definido una fecha para este evento.";
+            }
+
+            // 👶 Sección de menores (si existen)
+            const minors = record.minors || [];
+            let minorsSection = "";
+            if (minors.length > 0) {
+                minorsSection = `
+                    <div class="border rounded-md p-4 mb-4 bg-slate-50 dark:bg-darkmode-700 shadow-sm">
+                        <h4 class="font-semibold text-lg mb-2 text-slate-800 dark:text-slate-100">👶 Menores asociados</h4>
+                        <ul class="list-disc ml-5 text-sm text-slate-700 dark:text-slate-300">
+                            ${minors.map(m => `<li><strong>${m.full_name}</strong> — ${m.age} años</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            // 🧾 Información del evento (desde el ticket)
+            const eventCard = `
+                <article class="w-full bg-white dark:bg-darkmode-600 border ${statusColor} rounded-md p-4 mb-4 shadow-sm">
+                    <h5 class="font-semibold text-slate-800 dark:text-slate-200 text-base">${record.ticket.name}</h5>
+                    <p class="text-xs mt-1 ${statusColor} font-medium">${statusMessage}</p>
+                    <p class="text-sm mt-2"><strong>Fecha:</strong> ${record.ticket.entry_date ?? 'Sin fecha'}</p>
+                    <p class="text-sm"><strong>Hora:</strong> ${record.ticket.entry_start_time ?? 'No especificada'} — ${record.ticket.entry_end_time ?? 'No especificada'}</p>
+                </article>
+            `;
+
+            // 🧍 Información del usuario
+            const userInfo = `
+                <div class="border rounded-md p-4 mb-4 ${statusColor} text-left shadow-sm w-full transition">
+                    <h4 class="font-semibold text-lg mb-2">👤 Información del usuario</h4>
+                    <p class="text-sm"><strong>Nombre:</strong> ${record.name}</p>
+                    <p class="text-sm"><strong>Documento:</strong> ${record.document_number}</p>
+                    ${record.email ? `<p class="text-sm"><strong>Correo:</strong> ${record.email}</p>` : ''}
+                    <p class="mt-2 text-xs text-slate-700 dark:text-slate-400">
+                        <strong>Verificación:</strong> ${new Date().toLocaleString()}
+                    </p>
+                </div>
+            `;
+
+            resultDiv.innerHTML = `
+                ${eventCard}
+                ${minorsSection}
+                ${userInfo}
+            `;
+
+            if (window.lucide?.createIcons) window.lucide.createIcons();
             return;
         }
 
-        // Si no hay conexión, avisar
+        // ============================================
+        // 🚨 Caso 2: No está en local y sin conexión
+        // ============================================
         if (!navigator.onLine) {
-            showAlert('warning', 'alert-triangle', '⚠️ No hay conexión y el documento no está en base local.');
+            showSimpleAlert('warning', '⚠️ No hay conexión y el documento no está en la base local.');
             playSound(false);
             return;
         }
 
-        // Si hay conexión, usar flujo normal del servidor
+        // ============================================
+        // 🌐 Caso 3: Consultar al servidor si hay red
+        // ============================================
         executeVerification(documentNumber);
     }
 
+    // 🔔 Pequeña función auxiliar para alertas simples
+    function showSimpleAlert(type, message) {
+        const colors = {
+            success: 'text-green-600 border-green-400 bg-green-50',
+            warning: 'text-yellow-600 border-yellow-400 bg-yellow-50',
+            danger:  'text-red-600 border-red-400 bg-red-50'
+        };
+        const color = colors[type] || colors.warning;
+
+        resultDiv.innerHTML = `
+            <div class="border rounded-md p-4 mb-4 ${color} text-left shadow-sm w-full transition">
+                <h4 class="font-semibold text-lg mb-2">🔎 Verificación</h4>
+                <p>${message}</p>
+            </div>
+        `;
+    }
+
+
     async function logAllLocalData() {
+        dbInstance = await getDB()
         return new Promise((resolve) => {
-            const tx = db.transaction(STORE_NAME, 'readonly');
+            const tx = dbInstance.transaction(STORE_NAME, 'readonly');
             const store = tx.objectStore(STORE_NAME);
             const req = store.openCursor();
             const all = [];

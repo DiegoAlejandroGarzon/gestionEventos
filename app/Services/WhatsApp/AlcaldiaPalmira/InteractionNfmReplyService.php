@@ -35,7 +35,7 @@ class InteractionNfmReplyService
             $response_json['request_action'],
             $timestamp
         );
-        file_put_contents(storage_path().'/logs/log_webhook.txt', "<- CONTEXT_NFM ->" .json_encode($response_json['request_action']). PHP_EOL, FILE_APPEND);
+        
         // consultamos el id del ticket
         $conversationsMessages = new ConversationsMessages();
         $dataConvMessage = $conversationsMessages->where("message_what_id", $context["id"])->first();
@@ -52,7 +52,6 @@ class InteractionNfmReplyService
             // reserva
             case "register_boletas":
                 $public_link = "f3c6707b-d9f7-4051-95ad-6228c555bd84";
-                // Datos simulados del formulario que se enviarían por POST
                 $formData = [
                     'name' => $response_json['first_name'] ?? 'Sin nombre',
                     'lastname' => null,
@@ -65,25 +64,31 @@ class InteractionNfmReplyService
 
                     'id_ticket' => $arrParams[0],
                     'guid' =>  $arrParams[1],
-                    'seat_id' => null, // solo si ese ticket usa asientos
-                    'courtesy_code' => null, // opcional
-
+                    'seat_id' => null,
+                    'courtesy_code' => null,
                     'guardian_id' => null,
-
-                    // Array de menores si se van a registrar
-                    /*'minors' => [
-                        ['full_name' => 'Lucía López', 'age' => 8],
-                        ['full_name' => 'Tomás López', 'age' => 5],
-                    ],*/
-
                 ];
-
+                
+                // minors
+                $minors = [];
+                $index = 1;
+                while (isset($response_json["name_menor_{$index}"]) && !empty($response_json["name_menor_{$index}"])) {
+                    $nombre = trim($response_json["name_menor_{$index}"]);
+                    $edad = $response_json["edad_menor_{$index}"] ?? null;
+                    if (!empty($nombre) && !empty($edad)) {
+                        $minors[] = [
+                            'full_name' => $nombre,
+                            'age' => (int) $edad,
+                        ];
+                    }
+                    $index++;
+                }
+                if (!empty($minors)) {
+                    $formData['minors'] = $minors;
+                }
+                
                 // Crear objeto Request como si viniera del navegador
-                $request = Request::create(
-                    "/event/register/$public_link", // URL fake (solo para contexto)
-                    'POST',
-                    $formData
-                );
+                $request = Request::create("/event/register/$public_link",'POST',$formData);
 
                 // Invocar el service
                 $service = new PublicRegistrationService();
@@ -91,13 +96,36 @@ class InteractionNfmReplyService
                 $response = json_decode(json_encode($responseRaw->getData()), true);
                 
                 file_put_contents(storage_path().'/logs/log_webhook.txt', "<- RESPONSE 222 ->" .json_encode($response). PHP_EOL, FILE_APPEND);
-                /*$queryService->storeResponseAutoBot(
-                    "Respuesta automática",
-                    null,
-                    "text",
-                    "auto_text",
-                    $sendEstructuraa
-                );*/
+                
+                /// Acompañante
+                if (!empty($response_json['radAcompanante']) && $response_json['radAcompanante'] == 'Si') {
+                    $acompFormData = [
+                        'name' => trim($response_json['first_name_acomp']),
+                        'lastname' => null,
+                        'email' => $response_json['email_acomp'] ?? null,
+                        'type_document' => 'CC',
+                        'document_number' => $response_json['number_identification_acomp'] ?? null,
+                        'phone' => $response_json['phone_acomp'] ?? null,
+                        'city_id' => null,
+                        'birth_date' => null,
+
+                        'id_ticket' => $arrParams[0],
+                        'guid' => $arrParams[1],
+                        'guardian_id' => null
+                    ];
+
+                    $acompRequest = Request::create("/event/register/$public_link", 'POST', $acompFormData);
+                    $acompResponseRaw = $service->handle($acompRequest, $public_link, true);
+                    $acompResponse = json_decode(json_encode($acompResponseRaw->getData()), true);
+
+                    file_put_contents(
+                        storage_path().'/logs/log_webhook.txt',
+                        "<- ACOMPAÑANTE ->" . json_encode($acompFormData) . PHP_EOL .
+                        "<- RESPONSE ACOMPAÑANTE ->" . json_encode($acompResponse) . PHP_EOL,
+                        FILE_APPEND
+                    );
+                }
+                
                 // ✅ Validar que la inscripción fue exitosa
                 if (isset($response['success']) && $response['success'] === true && isset($response['data'])) {
                     $data = $response['data'];

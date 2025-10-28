@@ -284,6 +284,7 @@
                                 </div>
                             @endforeach
 
+                            @if ($event->allow_minors)
                             <!-- Pregunta sobre menores -->
                             <div class="mt-6">
                                 <label class="font-semibold text-slate-700">¿Desea inscribir menores de edad?</label>
@@ -302,6 +303,7 @@
 
                             <!-- Campos dinámicos para menores -->
                             <div id="minorsContainer" class="mt-4 space-y-4"></div>
+                            @endif
 
                             <!-- Botón -->
                             <div class="intro-x mt-6 text-center xl:text-left">

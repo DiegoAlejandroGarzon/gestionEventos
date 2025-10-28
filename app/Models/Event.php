@@ -26,6 +26,7 @@ class Event extends Model
         'event_date_end',
         'color_one',
         'color_two',
+        'allow_minors',
     ];
 
 

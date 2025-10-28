@@ -272,6 +272,27 @@
                         </div>
                     </div>
 
+                    <!-- Permitir menores de edad -->
+                    <div class="mt-3 box p-3">
+                        <x-base.form-label for="allow_minors">¿Permitir inscripción de menores de edad?</x-base.form-label>
+                        <div class="flex items-center space-x-2">
+                            <label class="flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    id="allow_minors"
+                                    name="allow_minors"
+                                    class="form-check-input"
+                                    value="1"
+                                    {{ old('allow_minors') ? 'checked' : '' }}
+                                >
+                                <span class="ml-2 text-slate-700">Sí, permitir registro de menores</span>
+                            </label>
+                        </div>
+                        @error('allow_minors')
+                            <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
+                        @enderror
+                    </div>
+
                     <!-- Campos Adicionales -->
                     <div class="mt-3">
                         <x-base.form-label>Campos Adicionales</x-base.form-label>

@@ -74,6 +74,7 @@ class EventController extends Controller
             'ticketTypes.*.entry_end_time' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/', 'after:ticketTypes.*.entry_start_time'],
             'additionalFields.*.label' => 'required|string|max:255',
             'additionalFields.*.value' => 'required|string|max:255',
+            'allow_minors' => 'nullable|boolean',
         ]);
 
         // Manejar la carga de la imagen
@@ -98,6 +99,7 @@ class EventController extends Controller
         $event->status = $request->status;
         $event->color_one = $request->color_one;
         $event->color_two = $request->color_two;
+        $event->allow_minors = $request->boolean('allow_minors');
         // Convertir los campos adicionales a JSON
         if($request->input('additionalFields')){
             $event->additionalFields = json_encode($request->input('additionalFields', []));
@@ -167,6 +169,7 @@ class EventController extends Controller
                 'ticketTypes.*.entry_end_time' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/', 'after:ticketTypes.*.entry_start_time'],
                 'address' => 'required|max:255',
                 'status' => 'required',
+                'allow_minors' => 'nullable|boolean',
             ]);
 
             // Manejar la carga de la nueva imagen si se sube una
@@ -191,6 +194,7 @@ class EventController extends Controller
             $event->status = $request->status;
             $event->color_one = $request->color_one;
             $event->color_two = $request->color_two;
+            $event->allow_minors = $request->boolean('allow_minors');
 
             // Convertir los campos adicionales a JSON
             if($request->input('additionalFields')){

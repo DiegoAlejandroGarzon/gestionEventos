@@ -14,27 +14,32 @@ class EventAssistantObserver
      */
     public function created(EventAssistant $eventAssistant)
     {
-        // Generar un GUID
-        $guid = $eventAssistant->guid ?? Str::uuid()->toString();
-        // Generar el QR Code basado en el ID o alguna otra información del modelo
-        $qrContent = route('eventAssistant.infoQr', ['id' => $eventAssistant->id, 'guid' => $guid]);
-        $qrCode = QrCode::format('svg')->size(300)->generate($qrContent);
-        // Inicializar el array para los valores que se actualizarán
-        $updateData = [
-            'qrCode' => $qrCode,
-            'guid' => $guid,
-        ];
-        // Verificar si el ticket_type_id está relacionado con un TicketType cuyo precio sea 0
+        $updateData = [];
+
+        // Marcar pagado si el tipo de ticket es gratuito
         $ticketType = TicketType::find($eventAssistant->ticket_type_id);
         if ($ticketType && $ticketType->price == 0) {
             $updateData['is_paid'] = true;
         }
-        // Actualizar el modelo con los valores generados
-        $eventAssistant->update($updateData);
 
-        // Verificar si el user_id tiene un valor de email y enviar el correo
-        if ($eventAssistant->user && !empty($eventAssistant->user->email)) {
-            // Instanciar el controlador y llamar a la función sendEmail
+        // Obtener el evento y comprobar si está permitido generar QR
+        $event = $eventAssistant->event; // relación belongsTo en el modelo
+        if ($event && ($event->generate_qr ?? true)) {
+            $guid = $eventAssistant->guid ?? Str::uuid()->toString();
+            $qrContent = route('eventAssistant.infoQr', ['id' => $eventAssistant->id, 'guid' => $guid]);
+            $qrCode = QrCode::format('svg')->size(300)->generate($qrContent);
+
+        $updateData['qrCode'] = $qrCode;
+        }
+        $updateData['guid'] = $guid;
+
+        // Actualizar sólo si hay datos a guardar
+        if (!empty($updateData)) {
+            $eventAssistant->update($updateData);
+        }
+
+        // Enviar correo sólo si se generó QR y existe email
+        if (($event->send_email ?? true)  && $eventAssistant->user && !empty($eventAssistant->user->email)) {
             app(\App\Http\Controllers\EventAssistantController::class)->sendEmail($eventAssistant->id);
         }
     }

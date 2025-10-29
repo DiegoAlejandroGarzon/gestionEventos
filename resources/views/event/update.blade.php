@@ -431,7 +431,48 @@
                             <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
                         @enderror
                     </div>
-
+                    <!-- Generar código QR al inscribir -->
+                    <input type="hidden" name="generate_qr" value="0">
+                    <div class="mt-3 box p-3">
+                        <x-base.form-label for="generate_qr">¿Generar código QR al inscribir?</x-base.form-label>
+                        <div class="flex items-center space-x-2">
+                            <label class="flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    id="generate_qr"
+                                    name="generate_qr"
+                                    class="form-check-input"
+                                    value="1"
+                                    {{ old('generate_qr', $event->generate_qr) ? 'checked' : '' }}
+                                >
+                                <span class="ml-2 text-slate-700">Sí, generar QR</span>
+                            </label>
+                        </div>
+                        @error('generate_qr')
+                            <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <!-- Enviar correo al inscribir -->
+                    <input type="hidden" name="send_email" value="0">
+                    <div class="mt-3 box p-3">
+                        <x-base.form-label for="send_email">¿Enviar correo al inscribir?</x-base.form-label>
+                        <div class="flex items-center space-x-2">
+                            <label class="flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    id="send_email"
+                                    name="send_email"
+                                    class="form-check-input"
+                                    value="1"
+                                    {{ old('send_email', $event->send_email) ? 'checked' : '' }}
+                                >
+                                <span class="ml-2 text-slate-700">Sí, enviar correo</span>
+                            </label>
+                        </div>
+                        @error('send_email')
+                            <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
+                        @enderror
+                    </div>
                     <!-- Campos Adicionales -->
                     <div class="mt-3">
                         <x-base.form-label>Campos Adicionales</x-base.form-label>

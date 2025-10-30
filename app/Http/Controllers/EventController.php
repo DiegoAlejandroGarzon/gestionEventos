@@ -417,21 +417,23 @@ class EventController extends Controller
             $user->assignRole($assistantRole);
         }
 
-        // Verificar si ya está inscrito
-        $eventAssistant = EventAssistant::where('event_id', $event->id)
-            ->where('user_id', $user->id)
-            ->first();
-
-        if ($eventAssistant) {
-            return redirect()->back()->with('error', 'El usuario ya está inscrito en este evento.');
-        }
-
         // 🔹 Verificar capacidad del tipo de ticket
         $ticketType = TicketType::find($request->id_ticket);
 
         if (!$ticketType) {
             return redirect()->back()->with('error', 'El tipo de entrada seleccionado no es válido.');
         }
+
+        // Verificar si ya está inscrito en este evento con el mismo tipo de ticket
+        $alreadyRegisteredSameTicket = EventAssistant::where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->where('ticket_type_id', $ticketType->id)
+            ->exists();
+
+        if ($alreadyRegisteredSameTicket) {
+            return redirect()->back()->with('error', 'El usuario ya está inscrito en este evento con el mismo tipo de entrada.');
+        }
+
         // Contar asistentes adultos inscritos en este tipo de ticket
         if (!auth()->check() || !auth()->user()->hasRole('admin')) {
             $currentAssistantsCount = EventAssistant::where('event_id', $event->id)

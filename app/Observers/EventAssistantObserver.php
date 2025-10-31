@@ -24,13 +24,13 @@ class EventAssistantObserver
 
         // Obtener el evento y comprobar si está permitido generar QR
         $event = $eventAssistant->event; // relación belongsTo en el modelo
+        $guid = $eventAssistant->guid ?? Str::uuid()->toString();
         if ($event && ($event->generate_qr ?? true)) {
-            $guid = $eventAssistant->guid ?? Str::uuid()->toString();
             $qrContent = route('eventAssistant.infoQr', ['id' => $eventAssistant->id, 'guid' => $guid]);
             $qrCode = QrCode::format('svg')->size(300)->generate($qrContent);
-
-        $updateData['qrCode'] = $qrCode;
+            $updateData['qrCode'] = $qrCode;
         }
+
         $updateData['guid'] = $guid;
 
         // Actualizar sólo si hay datos a guardar

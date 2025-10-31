@@ -131,17 +131,27 @@ document.addEventListener('DOMContentLoaded', async  function () {
         onFocus: function () {
             // aplicar estilo verde al control visual de TomSelect
             try {
-                const control = this.control || this.wrapper || (this.input && this.input.closest('.ts-control'));
-                if (control && control.classList) {
-                    control.parentElement.classList.add('bg-success', 'border-success', 'bg-opacity-20');
+                const control = this.wrapper || this.control || (this.input && this.input.closest('.ts-control')) || this.input;
+                // intentar encontrar el wrapper correcto
+                const target = control && (control.closest ? (control.closest('.ts-control') || control) : control);
+                if (target && target.classList) {
+                    // clases Tailwind esperadas
+                    target.classList.add('ring-2', 'ring-green-400', 'border-green-400', 'bg-success', 'bg-opacity-20');
+                    // fallback inline por si las clases no aplican por especificidad
+                    target.style.boxShadow = '0 0 0 4px rgba(34,197,94,0.12)';
+                    target.style.borderColor = '#34D399';
                 }
             } catch (e) { console.warn(e); }
         },
         onBlur: function () {
             try {
-                const control = this.control || this.wrapper || (this.input && this.input.closest('.ts-control'));
-                if (control && control.classList) {
-                    control.parentElement.classList.remove('bg-success', 'border-success', 'bg-opacity-20');
+                const control = this.wrapper || this.control || (this.input && this.input.closest('.ts-control')) || this.input;
+                const target = control && (control.closest ? (control.closest('.ts-control') || control) : control);
+                if (target && target.classList) {
+                    target.classList.remove('ring-2', 'ring-green-400', 'border-green-400', 'bg-success', 'bg-opacity-20');
+                    // limpiar estilos inline de fallback
+                    target.style.boxShadow = '';
+                    target.style.borderColor = '';
                 }
             } catch (e) { console.warn(e); }
         }
@@ -419,7 +429,7 @@ document.addEventListener('DOMContentLoaded', async  function () {
 
     // Guardar registros en local
     async function saveToLocal(records) {
-        dbInstance = await getDB()
+        const dbInstance = await getDB();
         return new Promise(async (resolve) => {
             const tx = dbInstance.transaction(STORE_NAME, 'readwrite');
             const store = tx.objectStore(STORE_NAME);
@@ -447,7 +457,7 @@ document.addEventListener('DOMContentLoaded', async  function () {
     }
 
     async function searchLocalByCedula(eventId, query) {
-        dbInstance = await getDB()
+        const dbInstance = await getDB();
         return new Promise((resolve) => {
             const tx = dbInstance.transaction(STORE_NAME, 'readonly');
             const store = tx.objectStore(STORE_NAME);
@@ -473,7 +483,6 @@ document.addEventListener('DOMContentLoaded', async  function () {
             req.onerror = () => resolve([]);
         });
     }
-
 
     // Descargar registros desde el servidor
     async function downloadLocalData() {
@@ -519,8 +528,9 @@ document.addEventListener('DOMContentLoaded', async  function () {
     }
 
     async function getAllFromLocal() {
+        const dbInstance = await getDB();
         return new Promise((resolve) => {
-            const tx = db.transaction(STORE_NAME, 'readonly');
+            const tx = dbInstance.transaction(STORE_NAME, 'readonly');
             const store = tx.objectStore(STORE_NAME);
             const req = store.openCursor();
             const results = [];
@@ -557,7 +567,7 @@ document.addEventListener('DOMContentLoaded', async  function () {
         // ============================================
         if (localRecord && localRecord.event_id == eventId) {
             console.log("✅ Encontrado en base local:", localRecord);
-            $sound = false;
+            let sound = false;
 
             const resultDiv = document.getElementById('resultContainer');
             const record = localRecord;
@@ -578,7 +588,7 @@ document.addEventListener('DOMContentLoaded', async  function () {
                 if (isWithin) {
                     statusMessage = "🟢 El evento está activo en este momento.";
                     statusColor = "text-green-600 border-green-400 bg-green-50";
-                    $sound = true;
+                    sound = true;
                 } else if (isToday) {
                     statusMessage = "🕓 El evento es hoy, pero aún no está en su rango horario.";
                     statusColor = "text-yellow-600 border-yellow-400 bg-yellow-50";
@@ -590,7 +600,7 @@ document.addEventListener('DOMContentLoaded', async  function () {
                 statusMessage = "⚠️ No se ha definido una fecha para este evento.";
             }
 
-            playSound($sound);
+            playSound(sound);
             // 👶 Sección de menores (si existen)
             const minors = record.minors || [];
             let minorsSection = "";
@@ -672,7 +682,7 @@ document.addEventListener('DOMContentLoaded', async  function () {
 
 
     async function logAllLocalData() {
-        dbInstance = await getDB()
+        const dbInstance = await getDB();
         return new Promise((resolve) => {
             const tx = dbInstance.transaction(STORE_NAME, 'readonly');
             const store = tx.objectStore(STORE_NAME);

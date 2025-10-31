@@ -7,41 +7,47 @@
 @section('subcontent')
 <div class="container py-5">
     <h2 class="intro-y mt-10 text-lg font-medium text-center">Verificación de Entrada por Cédula</h2>
-    <div class="p-3 mt-4 box">
-        <h3 class="text-lg font-semibold mb-2">Modo Offline</h3>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div>
-                <x-base.form-label for="offlineDate">Seleccionar Fecha</x-base.form-label>
-                <input type="date" id="offlineDate" class="form-control w-full">
-            </div>
-
-            <div class="flex items-end">
-                <button id="downloadLocalBtn"
-                    class="btn btn-primary w-full"
-                    type="button">
-                    💾 Descargar Registros de Forma Local
-                </button>
-            </div>
-        </div>
-
-        <p id="offlineStatus" class="text-sm text-slate-500 mt-2"></p>
-    </div>
-
-    <div class="mt-5 p-3 box">
-        <!-- Selector de Evento -->
-        <div class="m-2">
+    <!-- Barra superior: selector de evento y acceso al modo offline (modal) -->
+    <div class="mt-4 p-3 box flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <div class="w-full sm:w-2/3">
             <x-base.form-label for="eventSelect">Seleccionar Evento Activo</x-base.form-label>
             <x-base.tom-select id="eventSelect" name="eventSelect" class="w-full">
                 <option value="">Seleccione un evento</option>
                 @foreach ($events as $event)
-                    <option value="{{ $event->id }}">
-                        {{ $event->name }}
-                    </option>
+                    <option value="{{ $event->id }}">{{ $event->name }}</option>
                 @endforeach
             </x-base.tom-select>
         </div>
 
+        <div class="w-full sm:w-1/3 flex items-end justify-end">
+            <!-- Botón que abre modal de modo offline -->
+            <button id="openOfflineModalBtn" type="button" class="btn btn-secondary w-full sm:w-auto box p-2">💾 Modo Offline</button>
+        </div>
+    </div>
+
+    <!-- Modal: Modo Offline -->
+    <div id="offlineModal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="fixed inset-0 bg-black/50" id="offlineModalBackdrop"></div>
+        <div class="bg-white dark:bg-darkmode-700 rounded-lg shadow-lg p-6 z-10 w-full max-w-lg">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">Modo Offline — Descargar registros</h3>
+                <button id="closeOfflineModalBtn" class="text-slate-500">✕</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                    <x-base.form-label for="offlineDate">Seleccionar Fecha</x-base.form-label>
+                    <input type="date" id="offlineDate" class="form-control w-full">
+                </div>
+                <div class="flex items-end">
+                    <button id="downloadLocalBtn" class="btn btn-primary w-full box p-2" type="button">💾 Descargar Registros de Forma Local</button>
+                </div>
+            </div>
+            <p id="offlineStatus" class="text-sm text-slate-500 mt-2"></p>
+        </div>
+    </div>
+
+    <div class="mt-5 p-3 box">
         <!-- Selector de Cédula -->
         <div class="m-2">
             <x-base.form-label for="documentSelect">Buscar Cédula</x-base.form-label>
@@ -85,6 +91,14 @@ document.addEventListener('DOMContentLoaded', async  function () {
                 console.log("✅ Resultados obtenidos desde IndexedDB");
                 localMatches.forEach(r => r.display = `${r.document_number} — ${r.name}`);
                 callback(localMatches);
+
+                // Si sólo hay un resultado en local, autoseleccionarlo y ejecutar verificación
+                if (localMatches.length === 1) {
+                    try {
+                        cedulaSelect.addItem(localMatches[0].document_number);
+                        executeVerification(localMatches[0].document_number);
+                    } catch (e) { console.warn('No se pudo autoseleccionar desde IndexedDB', e); }
+                }
                 return;
             }
 
@@ -114,10 +128,32 @@ document.addEventListener('DOMContentLoaded', async  function () {
                 verifyDocumentOfflineFirst(value);
             }
         },
+        onFocus: function () {
+            // aplicar estilo verde al control visual de TomSelect
+            try {
+                const control = this.control || this.wrapper || (this.input && this.input.closest('.ts-control'));
+                if (control && control.classList) {
+                    control.parentElement.classList.add('bg-success', 'border-success', 'bg-opacity-20');
+                }
+            } catch (e) { console.warn(e); }
+        },
+        onBlur: function () {
+            try {
+                const control = this.control || this.wrapper || (this.input && this.input.closest('.ts-control'));
+                if (control && control.classList) {
+                    control.parentElement.classList.remove('bg-success', 'border-success', 'bg-opacity-20');
+                }
+            } catch (e) { console.warn(e); }
+        }
     });
 
     // 🚫 Deshabilitar select de cédulas al inicio
+    const openOfflineModalBtn = document.getElementById('openOfflineModalBtn');
     cedulaSelect.disable();
+    // Deshabilitar botón Offline hasta que se seleccione un evento
+    openOfflineModalBtn.disabled = true;
+    openOfflineModalBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    openOfflineModalBtn.setAttribute('aria-disabled', 'true');
 
     // 🎯 Escuchar cambios del select de evento
     eventSelect.addEventListener('change', function () {
@@ -127,13 +163,31 @@ document.addEventListener('DOMContentLoaded', async  function () {
 
         if (this.value) {
             cedulaSelect.enable();
+            // habilitar botón offline
+            openOfflineModalBtn.disabled = false;
+            openOfflineModalBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            openOfflineModalBtn.removeAttribute('aria-disabled');
             cedulaSelect.focus();
         } else {
             cedulaSelect.disable();
+            // mantener botón offline deshabilitado
+            openOfflineModalBtn.disabled = true;
+            openOfflineModalBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            openOfflineModalBtn.setAttribute('aria-disabled', 'true');
         }
     });
 
+    // Abrir y cerrar modal offline
+    const closeOfflineModalBtn = document.getElementById('closeOfflineModalBtn');
+    const offlineModal = document.getElementById('offlineModal');
+    const offlineModalBackdrop = document.getElementById('offlineModalBackdrop');
 
+    function showOfflineModal() { offlineModal.classList.remove('hidden'); }
+    function hideOfflineModal() { offlineModal.classList.add('hidden'); }
+
+    openOfflineModalBtn.addEventListener('click', showOfflineModal);
+    closeOfflineModalBtn.addEventListener('click', hideOfflineModal);
+    offlineModalBackdrop.addEventListener('click', hideOfflineModal);
 
     // 🔎 Verificación de ingreso
     function executeVerification(documentNumber) {
@@ -503,7 +557,7 @@ document.addEventListener('DOMContentLoaded', async  function () {
         // ============================================
         if (localRecord && localRecord.event_id == eventId) {
             console.log("✅ Encontrado en base local:", localRecord);
-            playSound(true);
+            $sound = false;
 
             const resultDiv = document.getElementById('resultContainer');
             const record = localRecord;
@@ -524,6 +578,7 @@ document.addEventListener('DOMContentLoaded', async  function () {
                 if (isWithin) {
                     statusMessage = "🟢 El evento está activo en este momento.";
                     statusColor = "text-green-600 border-green-400 bg-green-50";
+                    $sound = true;
                 } else if (isToday) {
                     statusMessage = "🕓 El evento es hoy, pero aún no está en su rango horario.";
                     statusColor = "text-yellow-600 border-yellow-400 bg-yellow-50";
@@ -535,6 +590,7 @@ document.addEventListener('DOMContentLoaded', async  function () {
                 statusMessage = "⚠️ No se ha definido una fecha para este evento.";
             }
 
+            playSound($sound);
             // 👶 Sección de menores (si existen)
             const minors = record.minors || [];
             let minorsSection = "";

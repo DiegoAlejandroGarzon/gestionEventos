@@ -95,8 +95,8 @@ document.addEventListener('DOMContentLoaded', async  function () {
                 // Si sólo hay un resultado en local, autoseleccionarlo y ejecutar verificación
                 if (localMatches.length === 1) {
                     try {
+                        // Añadir el valor; el onChange de TomSelect disparará verifyDocumentOfflineFirst
                         cedulaSelect.addItem(localMatches[0].document_number);
-                        executeVerification(localMatches[0].document_number);
                     } catch (e) { console.warn('No se pudo autoseleccionar desde IndexedDB', e); }
                 }
                 return;

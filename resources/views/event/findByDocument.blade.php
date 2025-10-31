@@ -18,6 +18,8 @@
                     <option value="{{ $event->id }}">{{ $event->name }}</option>
                 @endforeach
             </x-base.tom-select>
+            <!-- Estado de la base local -->
+            <p id="localDbStatus" class="text-sm text-slate-500 mt-2">Base local: comprobando...</p>
         </div>
 
         <div class="w-full sm:w-1/3 flex items-end justify-end">
@@ -42,7 +44,10 @@
                 <div class="flex items-end">
                     <button id="downloadLocalBtn" class="btn btn-primary w-full box p-2" type="button">💾 Descargar Registros de Forma Local</button>
                 </div>
-            </div>
+                <div class="flex items-end mt-2 sm:mt-0 sm:ml-2">
+                    <button id="clearLocalBtn" class="btn btn-danger w-full box p-2" type="button">🗑️ Vaciar base local</button>
+                </div>
+             </div>
             <p id="offlineStatus" class="text-sm text-slate-500 mt-2"></p>
         </div>
     </div>
@@ -164,6 +169,9 @@ document.addEventListener('DOMContentLoaded', async  function () {
     openOfflineModalBtn.disabled = true;
     openOfflineModalBtn.classList.add('opacity-50', 'cursor-not-allowed');
     openOfflineModalBtn.setAttribute('aria-disabled', 'true');
+
+    // Actualizar estado de la base local al iniciar
+    try { updateLocalDbStatus(); } catch (e) { console.warn('updateLocalDbStatus init error', e); }
 
     // 🎯 Escuchar cambios del select de evento
     eventSelect.addEventListener('change', function () {
@@ -399,44 +407,58 @@ document.addEventListener('DOMContentLoaded', async  function () {
     // =======================================
     const DB_NAME = 'eventVerificationDB';
     const STORE_NAME = 'assistants';
-    const DB_VERSION = 1;
-    const SECURITY_KEY = "123"; // Clave de seguridad local
-    let db;
+    // incrementar versión para actualizar esquema y permitir múltiples registros por documento
+    const DB_VERSION = 2;
+     const SECURITY_KEY = "123"; // Clave de seguridad local
+     let db;
 
-    async function getDB() {
-        if (db) return db; // si ya está abierta
-        db = await initDB(); // si no, inicializar
-        return db;
-    }
+     async function getDB() {
+         if (db) return db; // si ya está abierta
+         db = await initDB(); // si no, inicializar
+         return db;
+     }
 
-    // Inicializar base local
-    function initDB() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
-            request.onupgradeneeded = function (e) {
-                const database = e.target.result;
-                if (!database.objectStoreNames.contains(STORE_NAME)) {
-                    database.createObjectStore(STORE_NAME, { keyPath: 'document_number' });
-                }
-            };
-            request.onsuccess = function (e) {
-                console.log("✅ IndexedDB inicializada correctamente");
-                resolve(e.target.result);
-            };
-            request.onerror = () => reject('❌ Error inicializando IndexedDB');
-        });
-    }
+     // Inicializar base local
+     function initDB() {
+         return new Promise((resolve, reject) => {
+             const request = indexedDB.open(DB_NAME, DB_VERSION);
+             request.onupgradeneeded = function (e) {
+                 const database = e.target.result;
+                 // Si existe con schema antiguo, eliminar y recrear con nuevo keyPath 'id'
+                 if (database.objectStoreNames.contains(STORE_NAME)) {
+                     try { database.deleteObjectStore(STORE_NAME); } catch (err) { console.warn('deleteObjectStore', err); }
+                 }
+                 // Crear object store con keyPath 'id' (id único por evento+ticket+document)
+                 const store = database.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                 // Índices para búsqueda eficiente
+                 store.createIndex('by_document', 'document_number', { unique: false });
+                 store.createIndex('by_event_document', ['event_id', 'document_number'], { unique: false });
+                 store.createIndex('by_event', 'event_id', { unique: false });
+             };
+             request.onsuccess = function (e) {
+                 console.log("✅ IndexedDB inicializada correctamente");
+                 resolve(e.target.result);
+             };
+             request.onerror = () => reject('❌ Error inicializando IndexedDB');
+         });
+     }
 
     // Guardar registros en local
     async function saveToLocal(records) {
         const dbInstance = await getDB();
-        return new Promise(async (resolve) => {
+        return new Promise((resolve) => {
             const tx = dbInstance.transaction(STORE_NAME, 'readwrite');
             const store = tx.objectStore(STORE_NAME);
 
             store.clear(); // Limpiar antes de guardar
 
-            records.forEach(r => store.put(r));
+            // Asegurarse de que cada registro tenga un id único para no sobrescribir
+            records.forEach(r => {
+                // intentar localizar ticket id en distintas estructuras
+                const ticketId = r.ticket?.id ?? r.ticket_id ?? r.ticket?.ticket_id ?? '0';
+                r.id = `${r.event_id}_${ticketId}_${r.document_number}`;
+                store.put(r);
+            });
 
             tx.oncomplete = () => resolve(true);
             tx.onerror = () => resolve(false);
@@ -449,15 +471,37 @@ document.addEventListener('DOMContentLoaded', async  function () {
         return new Promise((resolve) => {
             const tx = dbInstance.transaction(STORE_NAME, 'readonly');
             const store = tx.objectStore(STORE_NAME);
-            const req = store.get(documentNumber);
-
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = () => resolve(null);
+            // Usar índice compuesto [event_id, document_number] para obtener el registro correcto
+            try {
+                const index = store.index('by_event_document');
+                const eventId = eventSelect.value || null;
+                if (!eventId) return resolve(null);
+                const req = index.get([eventId, documentNumber]);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => resolve(null);
+            } catch (e) {
+                // Fallback: buscar manualmente
+                const req = store.openCursor();
+                req.onsuccess = (ev) => {
+                    const cursor = ev.target.result;
+                    if (cursor) {
+                        const value = cursor.value;
+                        if (value.document_number == documentNumber && value.event_id == eventSelect.value) {
+                            resolve(value);
+                            return;
+                        }
+                        cursor.continue();
+                    } else {
+                        resolve(null);
+                    }
+                };
+                req.onerror = () => resolve(null);
+            }
         });
     }
 
     async function searchLocalByCedula(eventId, query) {
-        const dbInstance = await getDB();
+        const dbInstance = await getDB()
         return new Promise((resolve) => {
             const tx = dbInstance.transaction(STORE_NAME, 'readonly');
             const store = tx.objectStore(STORE_NAME);
@@ -518,6 +562,8 @@ document.addEventListener('DOMContentLoaded', async  function () {
 
                     const saved = await getAllFromLocal();
                     console.log("📦 Registros actualmente en IndexedDB:", saved);
+                    // actualizar indicador visual
+                    try { updateLocalDbStatus(); } catch(e){console.warn(e)}
                 } else {
                     statusEl.textContent = "⚠️ No se pudo descargar la información.";
                 }
@@ -551,12 +597,61 @@ document.addEventListener('DOMContentLoaded', async  function () {
         });
     }
 
+    // Actualiza el indicador de la base local (presencia y número de registros)
+    async function updateLocalDbStatus() {
+        const statusEl = document.getElementById('localDbStatus');
+        if (!statusEl) return;
+        try {
+            const records = await getAllFromLocal();
+            if (records && records.length > 0) {
+                statusEl.textContent = `Base local: ${records.length} registro(s) disponibles`;
+                statusEl.classList.remove('text-slate-500');
+                statusEl.classList.add('text-green-600');
+            } else {
+                statusEl.textContent = 'Base local: sin registros';
+                statusEl.classList.remove('text-green-600');
+                statusEl.classList.add('text-slate-500');
+            }
+        } catch (e) {
+            statusEl.textContent = 'Base local: error de lectura';
+            console.warn(e);
+        }
+    }
+
     // Asociar al botón
     document.getElementById('downloadLocalBtn').addEventListener('click', downloadLocalData);
+    // Asociar botón para vaciar la base local
+    document.getElementById('clearLocalBtn').addEventListener('click', clearLocalData);
 
     // =======================================
     // 🔍 Verificación: primero local, luego servidor
     // =======================================
+
+    // Vaciar la base local IndexedDB
+    async function clearLocalData() {
+        const confirmClear = confirm('¿Desea vaciar la base local? Esta acción eliminará todos los registros guardados localmente.');
+        const statusEl = document.getElementById('offlineStatus');
+        if (!confirmClear) return;
+        try {
+            statusEl.textContent = '⏳ Eliminando base local...';
+            // Eliminar la base de datos
+            const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
+            deleteRequest.onsuccess = async function () {
+                // Re-inicializar DB vacía
+                await initDB();
+                // Actualizar indicador visual
+                try { await updateLocalDbStatus(); } catch(e){console.warn(e)}
+                statusEl.textContent = '✅ Base local vaciada correctamente.';
+            };
+            deleteRequest.onerror = function () {
+                console.error('Error al eliminar IndexedDB');
+                statusEl.textContent = '❌ No se pudo vaciar la base local.';
+            };
+        } catch (e) {
+            console.error(e);
+            statusEl.textContent = '❌ Error al vaciar la base local.';
+        }
+    }
 
     async function verifyDocumentOfflineFirst(documentNumber) {
         const eventId = eventSelect.value;

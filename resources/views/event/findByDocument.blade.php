@@ -92,20 +92,80 @@ document.addEventListener('DOMContentLoaded', async  function () {
             console.log("🔍 Buscando cédula:", query);
             const localMatches = await searchLocalByCedula(eventId, query);
             // console.log("🔍 Resultados locales para", query, localMatches);
-            if (localMatches.length > 0) {
-                console.log("✅ Resultados obtenidos desde IndexedDB");
-                localMatches.forEach(r => r.display = `${r.document_number} — ${r.name}`);
-                callback(localMatches);
 
-                // Si sólo hay un resultado en local, autoseleccionarlo y ejecutar verificación
-                if (localMatches.length === 1) {
-                    try {
-                        // Añadir el valor; el onChange de TomSelect disparará verifyDocumentOfflineFirst
-                        cedulaSelect.addItem(localMatches[0].document_number);
-                    } catch (e) { console.warn('No se pudo autoseleccionar desde IndexedDB', e); }
+            if (localMatches.length > 0) {
+                console.log("✅ Resultados obtenidos desde IndexedDB:", localMatches);
+                localMatches.forEach(r => r.display = `${r.document_number} — ${r.name}`);
+                callback(localMatches);// --- LÓGICA PARA AUTOSERLECCIÓN INTELIGENTE ---
+                const distinctDocs = [...new Set(localMatches.map(r => r.document_number))];
+
+                // 🟢 Si todos los resultados pertenecen a la misma cédula, autoseleccionamos
+                if (distinctDocs.length === 1) {
+                    const docNumber = distinctDocs[0];
+                    const recordsForDoc = localMatches.filter(r => r.document_number === docNumber);
+
+                    // --- Opción 1: solo un registro -> seleccionar directamente
+                    if (recordsForDoc.length === 1) {
+                        const unico = recordsForDoc[0];
+                        setTimeout(() => {
+                            try {
+                                cedulaSelect.clear(true);
+                                cedulaSelect.addItem(unico.document_number);
+                                verifyDocumentOfflineFirst(unico.document_number);
+                            } catch (e) { console.warn('Auto-selección local falló', e); }
+                        }, 100);
+                        return;
+                    }
+
+                    // --- Opción 2: varios registros (mismo documento pero distintos tickets)
+                    // verificamos si alguno está activo por horario
+                    const now = new Date();
+                    const activeCandidates = recordsForDoc.filter(rec => {
+                        try {
+                            const ticket = rec.ticket || {};
+                            if (!ticket.entry_date) return false;
+                            const start = ticket.entry_start_time ? new Date(`${ticket.entry_date}T${ticket.entry_start_time}`) : null;
+                            const end   = ticket.entry_end_time   ? new Date(`${ticket.entry_date}T${ticket.entry_end_time}`)   : null;
+                            return start && end && now >= start && now <= end;
+                        } catch {
+                            return false;
+                        }
+                    });
+
+                    // Si hay uno activo, seleccionar ese
+                    if (activeCandidates.length === 1) {
+                        const activo = activeCandidates[0];
+                        setTimeout(() => {
+                            try {
+                                cedulaSelect.clear(true);
+                                cedulaSelect.addItem(activo.document_number);
+                                verifyDocumentOfflineFirst(activo.document_number);
+                            } catch (e) { console.warn('Auto-selección local por horario falló', e); }
+                        }, 100);
+                        return;
+                    }
+
+                    // Si todos son de la misma cédula pero ninguno está activo, igual seleccionamos el primero
+                    // (opcional: podrías abrir un modal para mostrar los tickets disponibles)
+                    if (recordsForDoc.length > 1) {
+                        const primero = recordsForDoc[0];
+                        setTimeout(() => {
+                            try {
+                                cedulaSelect.clear(true);
+                                cedulaSelect.addItem(primero.document_number);
+                                verifyDocumentOfflineFirst(primero.document_number);
+                            } catch (e) { console.warn('Auto-selección local múltiple falló', e); }
+                        }, 100);
+                        return;
+                    }
                 }
+
+                // 🔸 Si hay más de una cédula distinta, no se autoselecciona
+                console.log("ℹ️ Múltiples documentos distintos en los resultados, no se autoselecciona.");
                 return;
+
             }
+
 
             fetch(`{{ route('event.buscarCedulas') }}?event_id=${eventId}&query=${query}`)
                 .then(response => response.json())

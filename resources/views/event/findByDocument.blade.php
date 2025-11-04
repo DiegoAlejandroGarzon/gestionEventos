@@ -314,6 +314,21 @@ document.addEventListener('DOMContentLoaded', async  function () {
                         <p class="mt-2 text-xs text-slate-700 dark:text-slate-400"><strong>Verificación:</strong> ${data.checked_at}</p>
                     </div>
                 `;
+                // 👥 Información del guardián (si existe)
+                let guardianInfo = '';
+                const firstEventGuardian = data.events.find(e => e.guardian); // toma el primero con guardián
+
+                if (firstEventGuardian && firstEventGuardian.guardian) {
+                    const g = firstEventGuardian.guardian;
+                    guardianInfo = `
+                        <div class="border rounded-md p-4 mb-4 text-left shadow-sm w-full transition bg-blue-50 border-blue-300">
+                            <h4 class="font-semibold text-lg mb-2 text-blue-700">👥 Acompañante</h4>
+                            <p class="text-sm"><strong>Nombre:</strong> ${g.name}</p>
+                            <p class="text-sm"><strong>Documento:</strong> ${g.document_number}</p>
+                        </div>
+                    `;
+                }
+
 
                 // Cartas de eventos con clases responsivas y layout móvil optimizado
                 let eventsList = data.events.map(e => {
@@ -426,6 +441,7 @@ document.addEventListener('DOMContentLoaded', async  function () {
                 resultDiv.innerHTML = `
                     <div class="mb-3">${eventsWrapper}</div>
                     ${minorsSection}
+                    ${guardianInfo}
                     <div>${userInfo}</div>
                 `;
 
@@ -803,10 +819,22 @@ document.addEventListener('DOMContentLoaded', async  function () {
                 </div>
             `;
 
+            let guardianInfo = '';
+            if (record.guardian) {
+                guardianInfo = `
+                    <div class="border rounded-md p-4 mb-4 text-left shadow-sm w-full transition bg-blue-50 border-blue-300">
+                        <h4 class="font-semibold text-lg mb-2 text-blue-700">👥 Acompañante</h4>
+                        <p class="text-sm"><strong>Nombre:</strong> ${record.guardian.name}</p>
+                        <p class="text-sm"><strong>Documento:</strong> ${record.guardian.document_number}</p>
+                    </div>
+                `;
+            }
+
             resultDiv.innerHTML = `
                 ${eventCard}
                 ${minorsSection}
                 ${userInfo}
+                ${guardianInfo}
             `;
 
             if (window.lucide?.createIcons) window.lucide.createIcons();

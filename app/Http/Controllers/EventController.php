@@ -610,7 +610,7 @@ class EventController extends Controller
         }
 
         // Buscar solo el registro del evento seleccionado
-        $assistances = EventAssistant::with(['event', 'ticketType', 'minors'])
+        $assistances = EventAssistant::with(['event', 'ticketType', 'minors', 'guardian'])
             ->where('user_id', $user->id)
             ->where('event_id', $request->event_id)
             ->get();
@@ -676,6 +676,15 @@ class EventController extends Controller
                 ];
             });
 
+            // 🔹 Información del guardián (si existe)
+            $guardian = $a->guardian
+                ? [
+                    'id' => $a->guardian->id,
+                    'name' => $a->guardian->name,
+                    'document_number' => $a->guardian->document_number,
+                ]
+                : null;
+
             // 5️⃣ Armar el resultado
             return [
                 'id' => $event->id,
@@ -688,6 +697,7 @@ class EventController extends Controller
                 'is_active_now' => $isActive,
                 'status_message' => $statusMessage,
                 'event_assistant_id' => $a->id,
+                'guardian' => $guardian,
                 'minors' => $minors,
             ];
         });

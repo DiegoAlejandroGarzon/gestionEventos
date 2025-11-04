@@ -904,6 +904,68 @@ document.addEventListener('DOMContentLoaded', async  function () {
             };
         });
     }
+
+    // ================================
+    // 🧠 IndexedDB — Reinicio al cambiar evento
+    // ================================
+
+    let currentEventId = null; // Guarda el evento actualmente seleccionado
+
+    // Función para limpiar toda la base local
+    async function clearLocalDatabase() {
+        const dbInstance = await getDB();
+        return new Promise((resolve, reject) => {
+            const tx = dbInstance.transaction(STORE_NAME, "readwrite");
+            const store = tx.objectStore(STORE_NAME);
+            const req = store.clear();
+            req.onsuccess = () => {
+                console.log("🧹 Base local eliminada correctamente");
+                resolve(true);
+            };
+            req.onerror = (e) => {
+                console.error("❌ Error limpiando la base local:", e);
+                reject(e);
+            };
+        });
+    }
+
+    // Función para verificar si hay datos almacenados
+    async function hasLocalData() {
+        const dbInstance = await getDB();
+        return new Promise((resolve) => {
+            const tx = dbInstance.transaction(STORE_NAME, "readonly");
+            const store = tx.objectStore(STORE_NAME);
+            const req = store.count();
+            req.onsuccess = () => resolve(req.result > 0);
+            req.onerror = () => resolve(false);
+        });
+    }
+
+    // Detectar cambio de evento
+    document.getElementById("eventSelect")?.addEventListener("change", async function (e) {
+        const newEventId = e.target.value;
+
+        if (currentEventId && newEventId !== currentEventId) {
+            // Verificar si hay datos guardados
+            const hasData = await hasLocalData();
+
+            if (hasData) {
+                const confirmReset = confirm("⚠️ Ya existe una base local cargada. Si cambias de evento, se reiniciará la base local. ¿Deseas continuar?");
+                if (confirmReset) {
+                    await clearLocalDatabase();
+                    await updateLocalDbStatus();
+                    console.log("🔄 Base local reiniciada al cambiar de evento.");
+                } else {
+                    // Revertir el cambio de selección
+                    e.target.value = currentEventId;
+                    return;
+                }
+            }
+        }
+
+        currentEventId = newEventId; // Actualiza el evento actual
+    });
+
 });
 </script>
 @endsection

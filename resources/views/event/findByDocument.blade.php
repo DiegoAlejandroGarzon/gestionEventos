@@ -75,6 +75,47 @@ document.addEventListener('DOMContentLoaded', async  function () {
         documentSelect.tomselect.destroy();
     }
 
+    // =======================================
+    // 🧠 IndexedDB — Modo Offline
+    // =======================================
+    const DB_NAME = 'eventVerificationDB';
+    const STORE_NAME = 'assistants';
+    // incrementar versión para actualizar esquema y permitir múltiples registros por documento
+    const DB_VERSION = 2;
+     const SECURITY_KEY = "123"; // Clave de seguridad local
+     let db = null;
+
+     async function getDB() {
+         if (db) return db; // si ya está abierta
+         db = await initDB(); // si no, inicializar
+         return db;
+     }
+
+     // Inicializar base local
+     function initDB() {
+         return new Promise((resolve, reject) => {
+             const request = indexedDB.open(DB_NAME, DB_VERSION);
+             request.onupgradeneeded = function (e) {
+                 const database = e.target.result;
+                 // Si existe con schema antiguo, eliminar y recrear con nuevo keyPath 'id'
+                 if (database.objectStoreNames.contains(STORE_NAME)) {
+                     try { database.deleteObjectStore(STORE_NAME); } catch (err) { console.warn('deleteObjectStore', err); }
+                 }
+                 // Crear object store con keyPath 'id' (id único por evento+ticket+document)
+                 const store = database.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                 // Índices para búsqueda eficiente
+                 store.createIndex('by_document', 'document_number', { unique: false });
+                 store.createIndex('by_event_document', ['event_id', 'document_number'], { unique: false });
+                 store.createIndex('by_event', 'event_id', { unique: false });
+             };
+             request.onsuccess = function (e) {
+                 console.log("✅ IndexedDB inicializada correctamente");
+                 resolve(e.target.result);
+             };
+             request.onerror = () => reject('❌ Error inicializando IndexedDB');
+         });
+     }
+
     // 🔹 Autocompletado con TomSelect
     const cedulaSelect = new TomSelect(documentSelect, {
         create: false,
@@ -479,46 +520,6 @@ document.addEventListener('DOMContentLoaded', async  function () {
         audio.play();
     }
 
-    // =======================================
-    // 🧠 IndexedDB — Modo Offline
-    // =======================================
-    const DB_NAME = 'eventVerificationDB';
-    const STORE_NAME = 'assistants';
-    // incrementar versión para actualizar esquema y permitir múltiples registros por documento
-    const DB_VERSION = 2;
-     const SECURITY_KEY = "123"; // Clave de seguridad local
-     let db;
-
-     async function getDB() {
-         if (db) return db; // si ya está abierta
-         db = await initDB(); // si no, inicializar
-         return db;
-     }
-
-     // Inicializar base local
-     function initDB() {
-         return new Promise((resolve, reject) => {
-             const request = indexedDB.open(DB_NAME, DB_VERSION);
-             request.onupgradeneeded = function (e) {
-                 const database = e.target.result;
-                 // Si existe con schema antiguo, eliminar y recrear con nuevo keyPath 'id'
-                 if (database.objectStoreNames.contains(STORE_NAME)) {
-                     try { database.deleteObjectStore(STORE_NAME); } catch (err) { console.warn('deleteObjectStore', err); }
-                 }
-                 // Crear object store con keyPath 'id' (id único por evento+ticket+document)
-                 const store = database.createObjectStore(STORE_NAME, { keyPath: 'id' });
-                 // Índices para búsqueda eficiente
-                 store.createIndex('by_document', 'document_number', { unique: false });
-                 store.createIndex('by_event_document', ['event_id', 'document_number'], { unique: false });
-                 store.createIndex('by_event', 'event_id', { unique: false });
-             };
-             request.onsuccess = function (e) {
-                 console.log("✅ IndexedDB inicializada correctamente");
-                 resolve(e.target.result);
-             };
-             request.onerror = () => reject('❌ Error inicializando IndexedDB');
-         });
-     }
 
     // Guardar registros en local
     async function saveToLocal(records) {
@@ -686,8 +687,12 @@ document.addEventListener('DOMContentLoaded', async  function () {
 
             const records = await getAllFromLocal();
 
-            if (records && records.length > 0) {
-                statusEl.textContent = `Base local: ${records.length} registro(s) disponibles`;
+            // 🧩 Filtrar documentos únicos por número de cédula
+            const uniqueDocs = new Set(records.map(r => r.document_number));
+            const uniqueCount = uniqueDocs.size;
+
+            if (uniqueCount > 0) {
+                statusEl.textContent = `Base local: ${uniqueCount} registro(s) únicos disponibles`;
                 statusEl.classList.remove('text-slate-500');
                 statusEl.classList.add('text-green-600');
             } else {

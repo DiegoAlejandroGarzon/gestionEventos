@@ -231,7 +231,8 @@ document.addEventListener('DOMContentLoaded', async  function () {
     openOfflineModalBtn.setAttribute('aria-disabled', 'true');
 
     // Actualizar estado de la base local al iniciar
-    try { updateLocalDbStatus(); } catch (e) { console.warn('updateLocalDbStatus init error', e); }
+    // try { updateLocalDbStatus(); } catch (e) { console.warn('updateLocalDbStatus init error', e); }
+    getDB().then(() => updateLocalDbStatus());
 
     // 🎯 Escuchar cambios del select de evento
     eventSelect.addEventListener('change', function () {
@@ -661,8 +662,14 @@ document.addEventListener('DOMContentLoaded', async  function () {
     async function updateLocalDbStatus() {
         const statusEl = document.getElementById('localDbStatus');
         if (!statusEl) return;
+
         try {
+            // 🧠 Asegura que la base esté inicializada antes de intentar leer
+            const dbInstance = await getDB();
+            if (!dbInstance) throw new Error('DB no inicializada');
+
             const records = await getAllFromLocal();
+
             if (records && records.length > 0) {
                 statusEl.textContent = `Base local: ${records.length} registro(s) disponibles`;
                 statusEl.classList.remove('text-slate-500');
@@ -673,8 +680,11 @@ document.addEventListener('DOMContentLoaded', async  function () {
                 statusEl.classList.add('text-slate-500');
             }
         } catch (e) {
+            console.warn("❌ Error al actualizar estado local:", e);
             statusEl.textContent = 'Base local: error de lectura';
-            console.warn(e);
+            statusEl.classList.remove('text-green-600');
+            statusEl.classList.add('text-red-500');
+            console.error("Detalles del error IndexedDB:", e);
         }
     }
 

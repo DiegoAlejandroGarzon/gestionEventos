@@ -34,6 +34,7 @@ class EventAssistantController extends Controller
 
         // Número de asistentes registrados para el evento
         $totalTickets = EventAssistant::where('event_id', $idEvent)->where('has_entered', true)->count();
+        $ticketsNoEntered = EventAssistant::where('event_id', $idEvent)->where('has_entered', false)->count();
         $tickets = TicketType::where('event_id', $idEvent)->get();
 
         // Capacidad total del evento
@@ -43,6 +44,7 @@ class EventAssistantController extends Controller
         $availableTickets = $capacity - $totalTickets;
         $dataGeneral = [
             'soldTickets' => $totalTickets, // Entradas vendidas
+            'ticketsNoEntered' => $ticketsNoEntered, // Entradas no ingresadas
             'availableTickets' => $availableTickets, // Entradas disponibles
             'capacity' => $capacity // Capacidad total
         ];
@@ -61,6 +63,11 @@ class EventAssistantController extends Controller
                 ->where('has_entered', true)
                 ->count();
 
+            $ticketTypeNoEntered = EventAssistant::where('event_id', $idEvent)
+                ->where('ticket_type_id', $ticketType->id)
+                ->where('has_entered', false)
+                ->count();
+
             // Calcular entradas disponibles
             $availableTickets = $ticketType->capacity - $totalEntered;
 
@@ -72,6 +79,7 @@ class EventAssistantController extends Controller
                 'capacity' => $ticketType->capacity,
                 'soldTickets' => $totalEntered,
                 'availableTickets' => $availableTickets,
+                'ticketTypeNoEntered' => $ticketTypeNoEntered,
             ];
         }
         // Aplicar búsqueda y paginación

@@ -46,6 +46,11 @@
                                                     <span class="ml-auto font-medium">{{ $dataGeneral['soldTickets'] }} ({{ round(($dataGeneral['soldTickets'] / $dataGeneral['capacity']) * 100, 2) }}%)</span>
                                                 </div>
                                                 <div class="mt-4 flex items-center">
+                                                    <div class="mr-3 h-2 w-2 rounded-full bg-warning"></div>
+                                                    <span class="truncate">Entradas No ingresadas</span>
+                                                    <span class="ml-auto font-medium">{{ $dataGeneral['ticketsNoEntered'] }} ({{ round(($dataGeneral['ticketsNoEntered'] / $dataGeneral['capacity']) * 100, 2) }}%)</span>
+                                                </div>
+                                                <div class="mt-4 flex items-center">
                                                     <div class="mr-3 h-2 w-2 rounded-full bg-pending"></div>
                                                     <span class="truncate">Entradas Disponibles</span>
                                                     <span class="ml-auto font-medium">{{ $dataGeneral['availableTickets'] }} ({{ round(($dataGeneral['availableTickets'] / $dataGeneral['capacity']) * 100, 2) }}%)</span>
@@ -74,6 +79,11 @@
                                                     <div class="mr-3 h-2 w-2 rounded-full bg-primary"></div>
                                                     <span class="truncate">Entradas registradas</span>
                                                     <span class="ml-auto font-medium">{{ $ticketInfo['soldTickets'] }} ({{ round(($ticketInfo['soldTickets'] / $ticketInfo['capacity']) * 100, 2) }}%)</span>
+                                                </div>
+                                                <div class="mt-4 flex items-center">
+                                                    <div class="mr-3 h-2 w-2 rounded-full bg-warning"></div>
+                                                    <span class="truncate">Entradas No ingresadas</span>
+                                                    <span class="ml-auto font-medium">{{ $ticketInfo['ticketTypeNoEntered'] }} ({{ round(($ticketInfo['ticketTypeNoEntered'] / $ticketInfo['capacity']) * 100, 2) }}%)</span>
                                                 </div>
                                                 <div class="mt-4 flex items-center">
                                                     <div class="mr-3 h-2 w-2 rounded-full bg-pending"></div>

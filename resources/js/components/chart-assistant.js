@@ -6,6 +6,7 @@
     if ($("#report-pie-chart").length) {
         const chartColors = () => [
             getColor("primary", 0.9),
+            getColor("warning", 0.9),
             getColor("pending", 0.9),
         ];
 
@@ -15,11 +16,12 @@
             data: {
                 labels: [
                     "Entradas registradas",
+                    "Entradas NO ingresadas",
                     "Entradas Disponibles"
                 ],
                 datasets: [
                     {
-                        data: [chartData.soldTickets, chartData.availableTickets],
+                        data: [chartData.soldTickets, chartData.ticketsNoEntered, chartData.availableTickets],
                         backgroundColor: chartColors(),
                         hoverBackgroundColor: chartColors(),
                         borderWidth: 5,
@@ -51,6 +53,7 @@
         if ($(`#${ticketChartId}`).length) {
             const ticketChartColors = () => [
                 getColor("primary", 0.9),
+                getColor("warning", 0.9),
                 getColor("pending", 0.9),
             ];
 
@@ -60,11 +63,12 @@
                 data: {
                     labels: [
                         "Entradas registradas",
+                        "Entradas NO ingresadas",
                         "Entradas Disponibles"
                     ],
                     datasets: [
                         {
-                            data: [ticketInfo.soldTickets, ticketInfo.availableTickets],
+                            data: [ticketInfo.soldTickets, ticketInfo.ticketTypeNoEntered, ticketInfo.availableTickets],
                             backgroundColor: ticketChartColors(),
                             hoverBackgroundColor: ticketChartColors(),
                             borderWidth: 5,

@@ -32,6 +32,28 @@ class EventAssistantController extends Controller
     public function index(Request $request, $idEvent){
         $event = Event::findOrFail($idEvent);
 
+        $startDate = $request->input('startDate');
+        $endDate = $request->input('endDate');
+
+        // Si el evento tiene una sola fecha, no pedir rango
+        if ($event->event_date == $event->event_date_end) {
+            // Usar directamente esa fecha como rango
+            $startDate = $endDate = $event->event_date;
+        }
+
+        if(!$startDate || !$endDate){
+            return view('eventAssistant.index', compact(['idEvent', 'event']));
+        }
+
+        // Si hay fechas, filtrar los tipos de ticket del evento dentro del rango
+        $ticketTypesQuery = TicketType::where('event_id', $idEvent);
+
+        if ($startDate && $endDate) {
+            $ticketTypesQuery->whereBetween('entry_date', [$startDate, $endDate]);
+        }
+
+        $ticketTypes = $ticketTypesQuery->get();
+
         // Número de asistentes registrados para el evento
         $totalTickets = EventAssistant::where('event_id', $idEvent)->where('has_entered', true)->count();
         $ticketsNoEntered = EventAssistant::where('event_id', $idEvent)->where('has_entered', false)->count();
@@ -49,9 +71,6 @@ class EventAssistantController extends Controller
             'capacity' => $capacity // Capacidad total
         ];
 
-
-        // Obtener todos los tipos de tickets para el evento
-        $ticketTypes = TicketType::where('event_id', $idEvent)->get();
 
         // Inicializar el array para almacenar la información
         $ticketsInfo = [];
@@ -85,6 +104,14 @@ class EventAssistantController extends Controller
         // Aplicar búsqueda y paginación
         $query = EventAssistant::where('event_id', $idEvent);
 
+        if ($startDate && $endDate) {
+            // Filtrar los asistentes cuyos tickets están en el rango de fechas
+            $ticketIdsInRange = $ticketTypes->pluck('id')->toArray();
+            $query->whereIn('ticket_type_id', $ticketIdsInRange);
+        }
+
+         // Aplicar búsqueda si se proporciona un término de búsqueda
+
         if ($request->has('search')) {
             $search = $request->input('search');
 
@@ -112,7 +139,7 @@ class EventAssistantController extends Controller
 
         $asistentes = $query->paginate(10);
 
-        return view('eventAssistant.index', compact(['asistentes', 'idEvent', 'dataGeneral', 'event', 'ticketsInfo', 'tickets']));
+        return view('eventAssistant.index', compact(['asistentes', 'idEvent', 'dataGeneral', 'event', 'ticketsInfo', 'tickets', 'startDate', 'endDate']));
     }
 
     // Muestra la vista para subir el archivo de Excel

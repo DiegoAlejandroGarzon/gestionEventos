@@ -11,7 +11,54 @@
             {{ session('error') }}
         </x-base.alert>
     @endif
-    <h2 class="intro-y mt-10 text-lg font-medium">Lista de Asistentes</h2>
+    @if(!isset($startDate) || !isset($endDate))
+
+    <div class="mt-10 p-5 box text-center">
+        <h3 class="text-lg font-medium mb-3">Seleccionar rango de fechas para consultar asistentes</h3>
+
+        <form method="GET" action="{{ route('eventAssistant.index', ['idEvent' => $idEvent]) }}"
+            class="flex flex-col sm:flex-row gap-3 justify-center items-center">
+
+            <div>
+                <label for="startDate" class="block text-sm font-medium text-slate-700 mb-1">
+                    Fecha de inicio
+                </label>
+                <input
+                    type="date"
+                    id="startDate"
+                    name="startDate"
+                    class="form-control w-48"
+                    required
+                    min="{{ $event->event_date }}"
+                    max="{{ $event->event_date_end}}"
+                    value="{{ request('startDate') }}"
+                >
+            </div>
+
+            <div>
+                <label for="endDate" class="block text-sm font-medium text-slate-700 mb-1">
+                    Fecha límite
+                </label>
+                <input
+                    type="date"
+                    id="endDate"
+                    name="endDate"
+                    class="form-control w-48"
+                    required
+                    min="{{ $event->event_date}}"
+                    max="{{ $event->event_date_end}}"
+                    value="{{ request('endDate') }}"
+                >
+            </div>
+
+            <button type="submit" class="btn btn-primary mt-3 sm:mt-6">
+                Filtrar
+            </button>
+        </form>
+    </div>
+
+    @else
+    <h2 class="intro-y mt-10 text-lg font-medium">Lista de Asistentes entre <strong>{{ $startDate }}</strong> y <strong>{{ $endDate }}</strong></h2>
     <div class="">
         <script>
             const chartData = @json($dataGeneral);
@@ -520,4 +567,5 @@
         </div>
         <!-- END: Pagination -->
     </div>
+    @endif
 @endsection

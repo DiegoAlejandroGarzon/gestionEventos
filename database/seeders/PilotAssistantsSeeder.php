@@ -31,7 +31,7 @@ class PilotAssistantsSeeder extends Seeder
             ->toArray();
 
         if (empty($ticketIds)) {
-            $this->command->error('⚠️ No hay tickets disponibles en ese rango (462–895).');
+            $this->command->error('⚠️ No hay tickets disponibles.');
             return;
         }
 

@@ -77,6 +77,7 @@ class EventController extends Controller
             'allow_minors' => 'nullable|boolean',
             'generate_qr' => 'nullable|boolean',
             'send_email'  => 'nullable|boolean',
+            'mode_offline'  => 'nullable|boolean',
         ]);
 
         // Manejar la carga de la imagen
@@ -104,6 +105,7 @@ class EventController extends Controller
         $event->allow_minors = $request->boolean('allow_minors');
         $event->generate_qr = $request->boolean('generate_qr', true);
         $event->send_email  = $request->boolean('send_email', true);
+        $event->modeOffline  = $request->boolean('mode_offline', true);
         // Convertir los campos adicionales a JSON
         if($request->input('additionalFields')){
             $event->additionalFields = json_encode($request->input('additionalFields', []));
@@ -150,11 +152,9 @@ class EventController extends Controller
     }
 
     public function update(Request $request){
-
         try {
             $id = $request->id;
             $event = Event::findOrFail($id);
-
             // Validar los datos de entrada
             $request->validate([
                 'name' => 'required|string|max:255',
@@ -176,6 +176,7 @@ class EventController extends Controller
                 'allow_minors' => 'nullable|boolean',
                 'generate_qr' => 'nullable|boolean',
                 'send_email'  => 'nullable|boolean',
+                'mode_offline'  => 'nullable|boolean',
             ]);
 
             // Manejar la carga de la nueva imagen si se sube una
@@ -203,6 +204,7 @@ class EventController extends Controller
             $event->allow_minors = $request->boolean('allow_minors');
             $event->generate_qr = $request->boolean('generate_qr', true);
             $event->send_email  = $request->boolean('send_email', true);
+            $event->mode_offline  = $request->boolean('mode_offline', true);
 
             // Convertir los campos adicionales a JSON
             if($request->input('additionalFields')){
@@ -586,7 +588,7 @@ class EventController extends Controller
     }
 
     function findByDocument(){
-        $events = Event::where('status', 2)->get(['id', 'name']);
+        $events = Event::where('status', 2)->get(['id', 'name', 'mode_offline']);
         return view('event.findByDocument', compact('events'));
     }
 

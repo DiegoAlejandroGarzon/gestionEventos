@@ -473,6 +473,27 @@
                             <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
                         @enderror
                     </div>
+                    <!-- Habilitar modo offline al validar información -->
+                    <input type="hidden" name="mode_offline" value="0">
+                    <div class="mt-3 box p-3">
+                        <x-base.form-label for="mode_offline">¿Habilitar modo offline al validar información?</x-base.form-label>
+                        <div class="flex items-center space-x-2">
+                            <label class="flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    id="mode_offline"
+                                    name="mode_offline"
+                                    class="form-check-input"
+                                    value="1"
+                                    {{ old('mode_offline', $event->mode_offline) ? 'checked' : '' }}
+                                >
+                                <span class="ml-2 text-slate-700">Sí, enviar correo</span>
+                            </label>
+                        </div>
+                        @error('mode_offline')
+                            <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
+                        @enderror
+                    </div>
                     <!-- Campos Adicionales -->
                     <div class="mt-3">
                         <x-base.form-label>Campos Adicionales</x-base.form-label>

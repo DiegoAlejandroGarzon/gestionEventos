@@ -27,6 +27,9 @@ class Event extends Model
         'color_one',
         'color_two',
         'allow_minors',
+        'generate_qr',
+        'send_email',
+        'mode_offline',
     ];
 
 

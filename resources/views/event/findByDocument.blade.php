@@ -15,7 +15,11 @@
             <x-base.tom-select id="eventSelect" name="eventSelect" class="w-full">
                 <option value="">Seleccione un evento</option>
                 @foreach ($events as $event)
-                    <option value="{{ $event->id }}">{{ $event->name }}</option>
+                    <option
+                        value="{{ $event->id }}"
+                        data-offline="{{ $event->mode_offline ? '1' : '0' }}">
+                        {{ $event->name }}
+                    </option>
                 @endforeach
             </x-base.tom-select>
             <!-- Estado de la base local -->
@@ -71,6 +75,8 @@ document.addEventListener('DOMContentLoaded', async  function () {
     const documentSelect = document.getElementById('documentSelect');
     const eventSelect = document.getElementById('eventSelect');
     const resultDiv = document.getElementById('resultContainer');
+    const offlineBtn = document.getElementById('openOfflineModalBtn');
+
     if (documentSelect.tomselect) {
         documentSelect.tomselect.destroy();
     }
@@ -270,6 +276,7 @@ document.addEventListener('DOMContentLoaded', async  function () {
     openOfflineModalBtn.disabled = true;
     openOfflineModalBtn.classList.add('opacity-50', 'cursor-not-allowed');
     openOfflineModalBtn.setAttribute('aria-disabled', 'true');
+    statusOffline = document.getElementById('localDbStatus');
 
     // Actualizar estado de la base local al iniciar
     // try { updateLocalDbStatus(); } catch (e) { console.warn('updateLocalDbStatus init error', e); }
@@ -277,6 +284,19 @@ document.addEventListener('DOMContentLoaded', async  function () {
 
     // 🎯 Escuchar cambios del select de evento
     eventSelect.addEventListener('change', function () {
+
+        const selectedOption = eventSelect.options[eventSelect.selectedIndex];
+        const modeOffline = selectedOption.dataset.offline;
+
+        if (modeOffline === '1') {
+            console.log("Evento con modo offline activado");
+            offlineBtn.style.display = 'block';
+            statusOffline.style.display = 'block';
+        } else {
+            console.log("Evento sin modo offline");
+            offlineBtn.style.display = 'none';
+            statusOffline.style.display = 'none';
+        }
         cedulaSelect.clear(true);
         cedulaSelect.clearOptions();
         resultDiv.innerHTML = '';
@@ -296,6 +316,9 @@ document.addEventListener('DOMContentLoaded', async  function () {
             openOfflineModalBtn.setAttribute('aria-disabled', 'true');
         }
     });
+    // Ocultar el botón por defecto hasta que se seleccione un evento
+    offlineBtn.style.display = 'none';
+    statusOffline.style.display = 'none';
 
     // Abrir y cerrar modal offline
     const closeOfflineModalBtn = document.getElementById('closeOfflineModalBtn');

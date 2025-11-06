@@ -105,7 +105,7 @@ class EventController extends Controller
         $event->allow_minors = $request->boolean('allow_minors');
         $event->generate_qr = $request->boolean('generate_qr', true);
         $event->send_email  = $request->boolean('send_email', true);
-        $event->modeOffline  = $request->boolean('mode_offline', true);
+        $event->mode_offline  = $request->boolean('mode_offline', true);
         // Convertir los campos adicionales a JSON
         if($request->input('additionalFields')){
             $event->additionalFields = json_encode($request->input('additionalFields', []));

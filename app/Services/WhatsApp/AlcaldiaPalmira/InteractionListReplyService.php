@@ -39,9 +39,9 @@ class InteractionListReplyService
         
         switch($list_reply['id']){
             
-            // reserva
+            // reserva pesebre mas grande
             case "reservar_boletas":
-                // consultamos los aforos de los 3 dias actuales
+                // consultamos los aforos de los 7 dias actuales
                 $eventService = new EventService();
                 $arrDataDaysFrees = $eventService->getAvailableDaysOnly();
                 $menuCustomService = new MenuCustomService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
@@ -56,15 +56,28 @@ class InteractionListReplyService
                 );
                 break;
             
+            // reserva pesebre mas grande
+            case "reservar_boletas_panafest":
+                // consultamos los aforos de los 7 dias actuales
+                $eventService = new EventService();
+                $arrDataDaysFrees = $eventService->getAvailableDaysOnlyPanaFest();
+                $menuCustomService = new MenuCustomService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
+                $sendEstructuraa = $menuCustomService->sendMenu_selectDia($arrDataDaysFrees);
+                
+                $queryService->storeResponseAutoBot(
+                    "Respuesta automática",
+                    null,
+                    "text",
+                    "auto_text",
+                    $sendEstructuraa
+                );
+                break;
+            
             case "informacion_evento":
-                $responseText = "🎄 *El Pesebre Más Grande del Mundo – Palmira 2025*\n\n";
-                $responseText .= "📍 *Ubicación:* Bosque Municipal, Palmira, Valle del Cauca.\n";
-                $responseText .= "🔗 Ver en Google Maps: https://maps.app.goo.gl/oqFJ21xZWmnkTDGz7"; // <- reemplaza este enlace por el correcto
-                $responseText .= "\n📅 *Fechas:* Del 1 al 31 de diciembre de 2025.\n";
-                $responseText .= "🕐 *Horario:* Todos los días de 5:00 P.M. a 11:00 P.M.\n\n";
-                $responseText .= "🎟️ *Entrada con boleta reservada previamente.*\n";
-                $responseText .= "Puedes hacer la reserva desde el menú principal seleccionando *'Reservar boletas'*. \n\n";
-                $responseText .= "🙌 ¡Te esperamos para vivir juntos la magia de la Navidad en Palmira!";
+                $responseText = "ℹ️ *Otra Información sobre Palmira*\n\n";
+                $responseText .= "📘 En el sitio web oficial del municipio podrás encontrar más detalles sobre eventos, noticias, trámites y servicios disponibles para la comunidad.\n\n";
+                $responseText .= "🌐 Visita: https://palmira.gov.co/\n\n";
+                $responseText .= "✅ Mantente informado sobre todo lo que sucede en Palmira y participa en las actividades que tenemos para ti.";
 
                 $responseTplArr = $messageService->sendMessageNotTemplate($this->__externalPhoneNumber, $responseText, $list_reply["title"], false, null);
                 $queryService->storeResponseAutoBot(
@@ -76,7 +89,6 @@ class InteractionListReplyService
                 );
 
                 break;
-
             
             // preguntas
             case "preguntas_frecuentes":
@@ -111,13 +123,21 @@ class InteractionListReplyService
             default:
                 if (str_starts_with($list_reply['id'], 'seleccion_dia_')) {
                     $fechaSeleccionada = str_replace('seleccion_dia_', '', $list_reply['id']);
+                    $arrDays = explode("|", $fechaSeleccionada);
+                    $fechaSeleccionada = $arrDays[1];
 
                     $eventService = new EventService();
-                    $availabilityData = $eventService->getDaysAndTimesFrees($fechaSeleccionada);
+                    
+                    if($arrDays[0] == 2){
+                        $availabilityData = $eventService->getDaysAndTimesFrees($arrDays[1]);
+                    }
+                    elseif($arrDays[0] == 4){
+                        $availabilityData = $eventService->getDaysAndTimesFreesPanaFest($arrDays[1]);
+                    }
 
                     if (!empty($availabilityData)) {
                         $menuCustomService = new MenuCustomService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
-                        $sendEstructuraa = $menuCustomService->sendMenu_selectHorario($availabilityData, $fechaSeleccionada);
+                        $sendEstructuraa = $menuCustomService->sendMenu_selectHorario($availabilityData, $arrDays[1], $arrDays[0]);
                         $responseText = "Respuesta automática";
                     } else {
                         $sendEstructuraa = [];
@@ -137,7 +157,8 @@ class InteractionListReplyService
                         $sendEstructuraa
                     );
 
-                }elseif (str_starts_with($list_reply['id'], 'seleccion_horario_')) {
+                }
+                elseif (str_starts_with($list_reply['id'], 'seleccion_horario_')) {
                     $fechaSeleccionada = str_replace('seleccion_horario_', '', $list_reply['id']);
                     $fechaSeleccionada = explode("$", $fechaSeleccionada);
                     
@@ -145,41 +166,73 @@ class InteractionListReplyService
                     $fechaSeleccionada = $fechaSeleccionada[0];
                     
                     $ticketIdSelected = explode("|", $ticketIdSelected);
+                    file_put_contents(storage_path().'/logs/log_webhook.txt', "<- EXPLODE ->" .json_encode($ticketIdSelected). PHP_EOL, FILE_APPEND);
                     $hourStart = $ticketIdSelected[0];
                     $hourEnd = $ticketIdSelected[1];
                     $hourStart = \Carbon\Carbon::parse($hourStart)->format('h:i A');
                     $hourEnd = \Carbon\Carbon::parse($hourEnd)->format('h:i A');
                     
+                    $eventId = $ticketIdSelected[3];
                     $ticketIdSelected = $ticketIdSelected[2];
+                    
 
                     $eventService = new EventService();
                     $availabilityData = $eventService->getDaysAndTimesFrees($fechaSeleccionada);
 
                     $fechaFormateada = \Carbon\Carbon::parse($fechaSeleccionada)->translatedFormat('l d \d\e M');
                     $guid = (string) Str::uuid();
-                    // Parámetros para la plantilla
-                    $templateParams = [
-                        ['type' => 'text', 'text' => $fechaFormateada],
-                        ['type' => 'text', 'text' => $hourStart." a ".$hourEnd],
-                        ['type' => 'text', 'text' => $ticketIdSelected."$".$guid]
-                    ];
-                    $arrResponse = $messageService->sendMessage(
-                            $this->__externalPhoneNumber, 
-                            "alcapalmira_register_visite", 
-                            $templateParams, 
-                            true
-                    );
-                    $whatsId = $arrResponse->messageId;
-                    // ingresamos la auto respuesta
-                    $queryService->storeResponseAutoBot(
-                        "Respuesta automatica", 
-                        $whatsId, 
-                        "text_flow",
-                        "auto_text", 
-                        null,
-                        "alcapalmira_register_visite",
-                        $templateParams // mejorar esto para q inserte los params en bd
-                    );
+                    
+                    // enviamos FLOW PESEBRE
+                    if($eventId == 2){
+                        // Parámetros para la plantilla
+                        $templateParams = [
+                            ['type' => 'text', 'text' => $fechaFormateada],
+                            ['type' => 'text', 'text' => $hourStart." a ".$hourEnd],
+                            ['type' => 'text', 'text' => $ticketIdSelected."$".$guid."$".$eventId]
+                        ];
+                        $arrResponse = $messageService->sendMessage(
+                                $this->__externalPhoneNumber, 
+                                "alcapalmira_register_visite", 
+                                $templateParams, 
+                                true
+                        );
+                        $whatsId = $arrResponse->messageId;
+                        // ingresamos la auto respuesta
+                        $queryService->storeResponseAutoBot(
+                            "Respuesta automatica", 
+                            $whatsId, 
+                            "text_flow",
+                            "auto_text", 
+                            null,
+                            "alcapalmira_register_visite",
+                            $templateParams // mejorar esto para q inserte los params en bd
+                        );
+                    }
+                    elseif($eventId == 4){
+                        // Parámetros para la plantilla
+                        $templateParams = [
+                            ['type' => 'text', 'text' => $fechaFormateada],
+                            ['type' => 'text', 'text' => $hourStart." a ".$hourEnd],
+                            ['type' => 'text', 'text' => $ticketIdSelected."$".$guid."$".$eventId]
+                        ];
+                        $arrResponse = $messageService->sendMessage(
+                                $this->__externalPhoneNumber, 
+                                "alcapalmira_register_panafest", 
+                                $templateParams, 
+                                true
+                        );
+                        $whatsId = $arrResponse->messageId;
+                        // ingresamos la auto respuesta
+                        $queryService->storeResponseAutoBot(
+                            "Respuesta automatica", 
+                            $whatsId, 
+                            "text_flow",
+                            "auto_text", 
+                            null,
+                            "alcapalmira_register_panafest",
+                            $templateParams // mejorar esto para q inserte los params en bd
+                        );
+                    }
 
                 }
                 break;

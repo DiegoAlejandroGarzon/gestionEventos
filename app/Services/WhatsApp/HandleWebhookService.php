@@ -39,14 +39,16 @@ class HandleWebhookService
                 return true;
             }
             
-            switch($objectBody['entry'][0]['changes'][0]['value']['metadata']['phone_number_id']){
+            $phoneNId = $objectBody['entry'][0]['changes'][0]['value']['metadata']['phone_number_id'];
+            switch($phoneNId){
                 
                 // Alcaldia Palmira
                 case "855752667617564":
-                    $queryService = new QueryService($this->__externalPhoneNumber, "855752667617564");
+                case "845528951979695":
+                    $queryService = new QueryService($this->__externalPhoneNumber, $phoneNId);
                     
                     // SESSION INACTIVA
-                    $interactionService = new InteractionService($this->__externalPhoneNumber, "855752667617564");
+                    $interactionService = new InteractionService($this->__externalPhoneNumber, $phoneNId);
                     switch($message['type']){
                         case "interactive":
                             $interactionService->actionInteractive($message, $message_whatsapp_id, $timestamp, ($type_closed??null), $context);

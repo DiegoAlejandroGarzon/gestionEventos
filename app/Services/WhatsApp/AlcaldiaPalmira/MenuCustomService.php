@@ -17,30 +17,46 @@ class MenuCustomService
     
     public function sendMenu_initial($dataCurl)
     {
-        $headerText = '🎄 Alcaldía de Palmira te da la bienvenida';
-        $bodyText = '📍 La Alcaldía de Palmira te invita a disfrutar de *El Pesebre Más Grande del Mundo*, un evento mágico para toda la familia. Desde aquí podrás *reservar tus boletas* y acceder a toda la información del evento.';
+        $headerText = '🌆 Alcaldía de Palmira te da la bienvenida';
+        $bodyText = '🙌 La *Alcaldía de Palmira* te invita a disfrutar de nuestras actividades culturales, recreativas y turísticas. Desde aquí podrás *reservar tus boletas* y conocer toda la información sobre los eventos de nuestra ciudad. #PalmiraSeTransforma';
         $footerText = '🎫 ¿Qué deseas hacer hoy?';
         $buttonText = 'Ver opciones';
 
-        $sections = [
-            [
-                'title' => 'Opciones disponibles ✨',
-                'rows' => [
-                    [
-                        'id' => 'reservar_boletas',
-                        'title' => '🎟️ Reservar boletas',
-                        'description' => 'Asegura tu entrada al evento.'
-                    ],
-                    [
-                        'id' => 'informacion_evento',
-                        'title' => 'ℹ️ Información del evento',
-                        'description' => 'Horarios, ubicación y más detalles.'
-                    ],
-                    [
-                        'id' => 'preguntas_frecuentes',
-                        'title' => '❓ Preguntas frecuentes',
-                        'description' => 'Resolvemos tus dudas más comunes.'
-                    ]
+        // Definir las secciones según el número de WhatsApp ID
+        // Definimos la sección base
+        $culturalRows = [];
+
+        // Condicional solo para los rows
+        if ($this->__numberWhatssAppId === '855752667617564') {
+            // Si es este número, muestra este evento
+            $culturalRows[] = [
+                'id' => 'reservar_boletas',
+                'title' => '🐪️ Pesebre en vivo',
+                'description' => 'Vive la magia con el pesebre más grande del mundo'
+            ];
+        } elseif($this->__numberWhatssAppId === '845528951979695') {
+            // Para otros números, mostramos otra opción
+            $culturalRows[] = [
+                'id' => 'reservar_boletas_panafest',
+                'title' => '🎉 Pana Fest 2025',
+                'description' => 'Un festival lleno de juventud, música y talento palmirano'
+            ];
+        }
+
+        // Sección de eventos culturales (siempre presente)
+        $sections[] = [
+            'title' => 'Eventos culturales 🎭',
+            'rows'  => $culturalRows
+        ];
+
+        // Esta sección se muestra siempre
+        $sections[] = [
+            'title' => 'Otra Información 🧾',
+            'rows' => [
+                [
+                    'id' => 'informacion_evento',
+                    'title' => 'ℹ️ Información de eventos',
+                    'description' => 'Consulta horarios, ubicación y más detalles.'
                 ]
             ]
         ];
@@ -61,7 +77,8 @@ class MenuCustomService
         ];
     }
 
-    public function sendMenu_selectHorario(array $horarios, string $fecha = null)
+
+    public function sendMenu_selectHorario(array $horarios, string $fecha = null, int $eventId)
     {
         $headerText = '🎟️ Selecciona horario';
         $bodyText =  "Estos son los horarios disponibles para el día *" . \Carbon\Carbon::parse($fecha)->translatedFormat('l d \d\e F') . "*. Elige el que prefieras para reservar tus boletas.";
@@ -82,7 +99,7 @@ class MenuCustomService
             $hourStart = \Carbon\Carbon::parse($horario['start'])->format('h:i A');
             $hourEnd = \Carbon\Carbon::parse($horario['end'])->format('h:i A');
             $rows[] = [
-                'id' => 'seleccion_horario_' . $fecha. "$" .$horario['start']."|".$horario['end']."|".$horario['ticket_type_id'],
+                'id' => 'seleccion_horario_' . $fecha. "$" .$horario['start']."|".$horario['end']."|".$horario['ticket_type_id']."|".$eventId,
                 'title' => "🕒 {$hourStart} - {$hourEnd}",
                 'description' => "Clic para reservar — 📦 {$horario['remaining']} de {$horario['capacity']} disponibles"
             ];
@@ -120,12 +137,12 @@ class MenuCustomService
 
         $rows = [];
 
-        foreach ($availableDays as $fecha) {
+        foreach ($availableDays["days"] as $fecha) {
             // Ej: "Vie 15 Nov"
             $fechaFormateada = \Carbon\Carbon::parse($fecha)->translatedFormat('l d \d\e M');
 
             $rows[] = [
-                'id' => 'seleccion_dia_' . $fecha,
+                'id' => 'seleccion_dia_' .$availableDays["eventId"]."|". $fecha,
                 'title' => "🗓️ $fechaFormateada", // Máximo 24 caracteres
                 'description' => 'Ver horarios disponibles para este día' // Máximo 72 caracteres
             ];

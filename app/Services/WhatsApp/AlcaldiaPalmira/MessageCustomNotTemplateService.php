@@ -31,11 +31,27 @@ class MessageCustomNotTemplateService
         return $message;
     }
     
+    public function getRegistrationConfirmationMessagePanaFest(string $userName, string $eventName, string $location, string $dateTime, string $cedula, string $ticketId): string
+    {
+        $message = "--\n\n"
+            . "✅ *Inscripción confirmada*\n\n"
+            . "Hola *{$userName},* tu registro al evento *PanaFest 2025* ha sido exitoso. 🎉\n\n"
+            . "📍 *Lugar:* {$location}\n"
+            . "📅 *Fecha y hora:* {$dateTime}\n"
+            . "🎟️ *Ticket ID:* TCK-{$ticketId}(guárdalo por si necesitas consultar tu proceso)\n"
+            . "🪪 *Cédula asociada al registro:* {$cedula}\n\n"
+            . "⚠️ *Importante:* El ingreso al evento será únicamente presentando tu *documento de identidad*. Es *obligatorio* portarla ese día, ya que será *validada al ingreso*.\n\n"
+            . "🔸 Recuerda llegar con anticipación\n\n"
+            . "¡Gracias por ser parte de esta gran experiencia!";
+
+        return $message;
+    }
+    
     public function getAlreadyRegisteredMessage(string $cedula, string $date, string $time, string $ticketId): string
     {
         $message = "--\n\n"
             . "⚠️ *Ya tienes una reserva activa*\n\n"
-            . "La cédula *{$cedula}* ya cuenta con una reserva para el evento *'El Pesebre Más Grande del Mundo'*.\n\n"
+            . "La cédula *{$cedula}* ya cuenta con una reserva para este evento.\n\n"
             . "📅 *Fecha:* {$date}\n"
             . "🕒 *Hora:* {$time}\n"
             . "🎟️ *Ticket ID:* TCK-{$ticketId}(guárdalo por si necesitas gestionar tu proceso)\n\n"

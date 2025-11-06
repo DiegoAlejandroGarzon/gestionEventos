@@ -43,11 +43,11 @@ class createManagementController extends Controller{
             $objectBody = json_decode($requestBody, true);
 
             // ✅ Verifica si viene del número válido
-            $validPhoneNumberId = '855752667617564';
+            $validPhoneNumberId = array('855752667617564', '845528951979695');
             $receivedPhoneId = $objectBody['entry'][0]['changes'][0]['value']['metadata']['phone_number_id'] ?? null;
 
             // ❌ Si no viene del número válido, no se hace absolutamente nada
-            if ($receivedPhoneId !== $validPhoneNumberId) {
+            if (!in_array($receivedPhoneId, $validPhoneNumberId)) {
                 return response()->json(['status' => 'IGNORED'], 200);
             }
 

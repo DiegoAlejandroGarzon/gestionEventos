@@ -57,19 +57,40 @@ class InteractionListReplyService
                 break;
             
             // reserva pesebre mas grande
-            case "reservar_boletas_panafest":
-                // consultamos los aforos de los 7 dias actuales
-                $eventService = new EventService();
-                $arrDataDaysFrees = $eventService->getAvailableDaysOnlyPanaFest();
-                $menuCustomService = new MenuCustomService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
-                $sendEstructuraa = $menuCustomService->sendMenu_selectDia($arrDataDaysFrees);
+            case "alcapalmira_register_panafest":
                 
+                $eventService = new EventService();
+                $availabilityData = $eventService->getAvailableDaysHoursOne(4, 435);
+
+                $fechaFormateada = \Carbon\Carbon::parse($availabilityData->entry_date)->translatedFormat('l d \d\e M');
+                $guid = (string) Str::uuid();
+                
+                $hourStart = \Carbon\Carbon::parse($availabilityData->entry_start_time)->format('h:i A');
+                $hourEnd = \Carbon\Carbon::parse($availabilityData->entry_end_time)->format('h:i A');
+
+                // enviamos FLOW
+                // Parámetros para la plantilla
+                $templateParams = [
+                    ['type' => 'text', 'text' => $fechaFormateada],
+                    ['type' => 'text', 'text' => $hourStart." a ".$hourEnd],
+                    ['type' => 'text', 'text' => (435)."$".$guid."$".(4)] // ID TICKET // GUID // EVENT_ID
+                ];
+                $arrResponse = $messageService->sendMessage(
+                    $this->__externalPhoneNumber, 
+                    "alcapalmira_register_panafest", 
+                    $templateParams, 
+                    true
+                );
+                $whatsId = $arrResponse->messageId;
+                // ingresamos la auto respuesta
                 $queryService->storeResponseAutoBot(
-                    "Respuesta automática",
+                    "Respuesta automatica", 
+                    $whatsId, 
+                    "text_flow",
+                    "auto_text", 
                     null,
-                    "text",
-                    "auto_text",
-                    $sendEstructuraa
+                    "alcapalmira_register_panafest",
+                    $templateParams // mejorar esto para q inserte los params en bd
                 );
                 break;
             
@@ -205,31 +226,6 @@ class InteractionListReplyService
                             "auto_text", 
                             null,
                             "alcapalmira_register_visite",
-                            $templateParams // mejorar esto para q inserte los params en bd
-                        );
-                    }
-                    elseif($eventId == 4){
-                        // Parámetros para la plantilla
-                        $templateParams = [
-                            ['type' => 'text', 'text' => $fechaFormateada],
-                            ['type' => 'text', 'text' => $hourStart." a ".$hourEnd],
-                            ['type' => 'text', 'text' => $ticketIdSelected."$".$guid."$".$eventId]
-                        ];
-                        $arrResponse = $messageService->sendMessage(
-                                $this->__externalPhoneNumber, 
-                                "alcapalmira_register_panafest", 
-                                $templateParams, 
-                                true
-                        );
-                        $whatsId = $arrResponse->messageId;
-                        // ingresamos la auto respuesta
-                        $queryService->storeResponseAutoBot(
-                            "Respuesta automatica", 
-                            $whatsId, 
-                            "text_flow",
-                            "auto_text", 
-                            null,
-                            "alcapalmira_register_panafest",
                             $templateParams // mejorar esto para q inserte los params en bd
                         );
                     }

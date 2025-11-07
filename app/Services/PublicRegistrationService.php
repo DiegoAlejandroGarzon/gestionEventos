@@ -91,7 +91,7 @@ class PublicRegistrationService
             $validatedData = $request->validate($validationRules);
 
             $user = User::where('document_number', $request->document_number)
-                ->orWhere('email', $request->email)
+                //->orWhere('email', $request->email)
                 ->first();
 
             if ($user) {

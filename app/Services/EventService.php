@@ -9,6 +9,7 @@ namespace App\Services;
 
 use App\Models\EventAssistant;
 use Carbon\Carbon;
+use App\Models\TicketType;
 /**
  * Description of EventService
  *
@@ -1114,61 +1115,22 @@ class EventService {
         return $result;
     }
 
-    
-    public function getAvailableDaysOnlyPanaFest()
+    /**
+     * consulta los datos de un evento que tiene solo un dia y una hora especifica
+     * 
+     * @param int $eventId
+     * @return type
+     */
+    public function getAvailableDaysHoursOne($eventId, $ticketId)
     {
-        $days = 10;
-        $eventId = 4;
-
-        // ticket_type_id => [fecha, hora_inicio, hora_fin, capacidad]
-        $ticketInfo = array(
-            435 => array('2025-11-15', '7:00', '21:59', 20000)
-          );
-
-
-        $ticketTypesByDay = [
-            "2025-11-15" => [435]
-        ];
-
-        $availableDays = [];
-
-        // Simulación de fecha base (puedes desactivarla con null)
-        $simulatedBaseDate = now(); //'2025-11-15';
-        $baseDate = $simulatedBaseDate ? \Carbon\Carbon::parse($simulatedBaseDate) : now();
-
-        for ($i = 0; $i < $days; $i++) {
-            $currentDate = $baseDate->copy()->addDays($i)->format('Y-m-d');
-
-            if (!isset($ticketTypesByDay[$currentDate])) continue;
-
-            $idsDelDia = $ticketTypesByDay[$currentDate];
-
-            $usedTickets = \App\Models\EventAssistant::where('event_id', $eventId)
-                ->whereIn('ticket_type_id', $idsDelDia)
-                ->where('rejected', 0)
-                ->selectRaw('ticket_type_id, COUNT(*) as total')
-                ->groupBy('ticket_type_id')
-                ->pluck('total', 'ticket_type_id')
-                ->toArray();
-
-            foreach ($idsDelDia as $ticketId) {
-                if (!isset($ticketInfo[$ticketId])) continue;
-
-                [, , , $capacity] = $ticketInfo[$ticketId];
-                $used = $usedTickets[$ticketId] ?? 0;
-                $available = $capacity - $used;
-
-                if ($available > 0) {
-                    $availableDays[] = $currentDate;
-                    break; 
-                }
-            }
-        }
-
-        return array(
-            "eventId" => $eventId,
-            "days" => $availableDays
-        ); // Ejemplo: ['2025-11-15', '2025-11-16']
+        $ticketType = new TicketType();
+        $ticketInfo = $ticketType
+                    ->with("event")
+                    ->select('id', 'entry_date', 'entry_start_time', 'entry_end_time', 'capacity')
+                    ->where('id', $ticketId)
+                    ->first();
+        
+        return $ticketInfo; // Ejemplo: ['2025-11-15', '2025-11-16']
     }
     
     public function getDaysAndTimesFreesPanaFest(string $date)

@@ -23,7 +23,7 @@ class MessageCustomNotTemplateService
             . "📍 *Lugar:* {$location}\n"
             . "📅 *Fecha y hora:* {$dateTime}\n"
             . "🎟️ *Ticket ID:* TCK-{$ticketId}(guárdalo por si necesitas consultar tu proceso)\n"
-            . "🪪 *Cédula asociada al registro:* {$cedula}\n\n"
+            . "🪪 *Documento asociado al registro:* {$cedula}\n\n"
             . "⚠️ *Importante:* El ingreso al evento será únicamente presentando tu *cédula de ciudadanía*. Es *obligatorio* portarla ese día, ya que será *validada al ingreso*.\n\n"
             . "🔸 Recuerda llegar con anticipación\n\n"
             . "¡Gracias por ser parte de esta gran experiencia!";
@@ -35,12 +35,12 @@ class MessageCustomNotTemplateService
     {
         $message = "--\n\n"
             . "✅ *Inscripción confirmada*\n\n"
-            . "Hola *{$userName},* tu registro al evento *PanaFest 2025* ha sido exitoso. 🎉\n\n"
+            . "Hola *{$userName},* tu registro al evento *PanaFest 2025* ha sido exitoso. 🎮🎉\n\n"
             . "📍 *Lugar:* {$location}\n"
             . "📅 *Fecha y hora:* {$dateTime}\n"
             . "🎟️ *Ticket ID:* TCK-{$ticketId}(guárdalo por si necesitas consultar tu proceso)\n"
-            . "🪪 *Cédula asociada al registro:* {$cedula}\n\n"
-            . "⚠️ *Importante:* El ingreso al evento será únicamente presentando tu *documento de identidad*. Es *obligatorio* portarla ese día, ya que será *validada al ingreso*.\n\n"
+            . "🪪 *Documento asociado al registro:* {$cedula}\n\n"
+            //. "⚠️ *Importante:* El ingreso al evento será únicamente presentando tu *documento de identidad*. Es *obligatorio* portarla ese día, ya que será *validada al ingreso*.\n\n"
             . "🔸 Recuerda llegar con anticipación\n\n"
             . "¡Gracias por ser parte de esta gran experiencia!";
 

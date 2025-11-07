@@ -37,7 +37,7 @@ class MenuCustomService
         } elseif($this->__numberWhatssAppId === '845528951979695') {
             // Para otros números, mostramos otra opción
             $culturalRows[] = [
-                'id' => 'reservar_boletas_panafest',
+                'id' => 'alcapalmira_register_panafest',
                 'title' => '🎉 Pana Fest 2025',
                 'description' => 'Un festival lleno de juventud, música y talento palmirano'
             ];

@@ -190,7 +190,7 @@ class InteractionNfmReplyService
                     'name' => $response_json['first_name'] ?? 'Sin nombre',
                     'lastname' => null,
                     'email' => null,
-                    'type_document' => 'CC',
+                    'type_document' => null,
                     'document_number' => $response_json['number_identification'] ?? null,
                     'phone' => $response_json['phone'] ?? null,
                     'city_id' => null,
@@ -201,6 +201,12 @@ class InteractionNfmReplyService
                     'seat_id' => null,
                     'courtesy_code' => null,
                     'guardian_id' => null,
+                    
+                    'Barrio' => $response_json['Barrio'],
+                    'Grupo_poblacional' => isset($response_json['Grupo_poblacional'])
+                        ? json_encode($response_json['Grupo_poblacional'], JSON_UNESCAPED_UNICODE)
+                        : json_encode([]),
+                    'Edad' => $response_json['Edad']
                 ];
                 
                 // minors

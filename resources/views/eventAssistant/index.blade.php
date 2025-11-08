@@ -371,25 +371,41 @@
                             <x-base.table.tr class="intro-x">
                                 <!-- Carga dinámica de contenido de las filas -->
                                 @foreach($selectedFields as $key => $field)
-                                    @if($key == 0 && $asistente->guardian_id != null)
-                                    <x-base.table.td class="box text-center">
-                                        <x-base.tippy content="Acudiente: {{$asistente->guardian->name}} - {{$asistente->guardian->document_number}}" class="mr-1">
+                                    @if($key == 0)
+                                        <x-base.table.td class="box text-center">
 
-                                            <x-base.alert
-                                            class="flex items-center"
-                                            variant="soft-pending"
-                                        >
-                                            <x-base.lucide
-                                                class="mr-2"
-                                                icon="AlertTriangle"
-                                            />
-                                            {{ $asistente->user->$field }}
-                                        </x-base.alert>
-                                        </x-base.tippy>
-                                    </x-base.table.td>
+                                            {{-- Si tiene acudiente, mostrar alerta con tooltip --}}
+                                            @if($asistente->guardian_id)
+                                                <x-base.tippy
+                                                    content="Acudiente: {{ $asistente->guardian->name }} - {{ $asistente->guardian->document_number }}"
+                                                    class="mr-1"
+                                                >
+                                                    <x-base.alert class="flex items-center mb-2" variant="soft-primary">
+                                                        <x-base.lucide class="mr-2" icon="info" />
+                                                        {{ $asistente->user->$field }}
+                                                    </x-base.alert>
+                                                </x-base.tippy>
+                                            @else
+                                                {{ $asistente->user->$field }}
+                                            @endif
+
+                                            {{-- Si tiene menores asociados, listarlos debajo --}}
+                                            @if($asistente->minors && $asistente->minors->count() > 0)
+                                                <div class="mt-2 text-xs text-slate-600 text-left">
+                                                    <strong>Menores a cargo:</strong>
+                                                    <ul class="list-disc list-inside mt-1">
+                                                        @foreach($asistente->minors as $minor)
+                                                            <li>{{ $minor->full_name }} ({{ $minor->age }} años)</li>
+                                                        @endforeach
+                                                    </ul>
+                                                </div>
+                                            @endif
+
+                                        </x-base.table.td>
                                     @else
-                                    <x-base.table.td class="box text-center ">{{ $asistente->user->$field }}</x-base.table.td>
+                                        <x-base.table.td class="box text-center">{{ $asistente->user->$field }}</x-base.table.td>
                                     @endif
+
                                 @endforeach
 
                                 @foreach ($additionalParameters as $parameter)

@@ -588,7 +588,7 @@ class EventController extends Controller
     }
 
     function findByDocument(){
-        $events = Event::where('status', 2)->get(['id', 'name', 'mode_offline']);
+        $events = Event::where('status', 2)->get(['id', 'name', 'mode_offline', 'event_date', 'event_date_end']);
         return view('event.findByDocument', compact('events'));
     }
 

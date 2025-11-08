@@ -17,7 +17,10 @@
                 @foreach ($events as $event)
                     <option
                         value="{{ $event->id }}"
-                        data-offline="{{ $event->mode_offline ? '1' : '0' }}">
+                        data-offline="{{ $event->mode_offline ? '1' : '0' }}"
+                        data-start="{{ $event->event_date }}"
+                        data-end="{{ $event->event_date_end }}"
+                        >
                         {{ $event->name }}
                     </option>
                 @endforeach
@@ -316,6 +319,31 @@ document.addEventListener('DOMContentLoaded', async  function () {
             openOfflineModalBtn.setAttribute('aria-disabled', 'true');
         }
     });
+
+    // Limitar el input de fecha según el evento seleccionado
+    const offlineDateInput = document.getElementById('offlineDate');
+
+    eventSelect.addEventListener('change', function () {
+        const selectedOption = eventSelect.options[eventSelect.selectedIndex];
+        const startDate = selectedOption.dataset.start;
+        const endDate = selectedOption.dataset.end;
+
+        if (startDate && endDate) {
+            offlineDateInput.min = startDate;
+            offlineDateInput.max = endDate;
+            offlineDateInput.value = startDate;
+            offlineDateInput.removeAttribute('disabled');
+        } else {
+            offlineDateInput.min = '';
+            offlineDateInput.max = '';
+            offlineDateInput.value = '';
+            offlineDateInput.setAttribute('disabled', true);
+        }
+
+        console.log(`📅 Rango de fechas para este evento: ${startDate} → ${endDate}`);
+    });
+
+
     // Ocultar el botón por defecto hasta que se seleccione un evento
     offlineBtn.style.display = 'none';
     statusOffline.style.display = 'none';

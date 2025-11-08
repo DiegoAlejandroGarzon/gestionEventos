@@ -58,7 +58,14 @@
     </div>
 
     @else
-    <h2 class="intro-y mt-10 text-lg font-medium">Lista de Asistentes entre <strong>{{ $startDate }}</strong> y <strong>{{ $endDate }}</strong></h2>
+    <h2 class="intro-y mt-10 text-lg font-medium">
+        Lista de Asistentes
+        @if ($startDate === $endDate)
+            del <strong>{{ $startDate }}</strong>
+        @else
+            entre <strong>{{ $startDate }}</strong> y <strong>{{ $endDate }}</strong>
+        @endif
+    </h2>
     <div class="">
         <script>
             const chartData = @json($dataGeneral);
@@ -148,6 +155,40 @@
                 </div>
             </x-base.preview-component>
 
+            <!-- FILTRO POR TIPO DE TICKET -->
+            <div class="mt-5 p-5 box">
+                <h3 class="text-lg font-medium mb-3">Filtrar por tipo de ticket</h3>
+
+                <form method="GET" action="{{ route('eventAssistant.index', ['idEvent' => $idEvent]) }}" class="flex flex-col sm:flex-row gap-3 items-center justify-center">
+
+                    {{-- Mantener fechas si ya están definidas --}}
+                    @if (!empty($startDate) && !empty($endDate))
+                        <input type="hidden" name="startDate" value="{{ $startDate }}">
+                        <input type="hidden" name="endDate" value="{{ $endDate }}">
+                    @endif
+
+                    {{-- MULTISELECT USANDO x-base.tom-select --}}
+                    <x-base.tom-select
+                        name="ticket_type_ids[]"
+                        class="w-full sm:w-1/3"
+                        multiple
+                        placeholder="Selecciona uno o varios tipos de ticket"
+                    >
+                        @foreach ($tickets as $ticket)
+                            <option
+                                value="{{ $ticket->id }}"
+                                {{ in_array($ticket->id, $selectedTicketIds ?? []) ? 'selected' : '' }}
+                            >
+                                {{ $ticket->name }}
+                            </option>
+                        @endforeach
+                    </x-base.tom-select>
+
+                    <button type="submit" class="btn btn-primary mt-2 sm:mt-0">
+                        Filtrar
+                    </button>
+                </form>
+            </div>
         <div class="intro-y col-span-12 mt-2 flex flex-wrap items-center sm:flex-nowrap">
             {{-- <a href="{{ route('eventAssistant.massAssign', ['idEvent' => $idEvent]) }}">
                 <x-base.button class="mr-2 shadow-md" variant="primary">
@@ -211,15 +252,27 @@
             </x-base.button>
             <div class="mt-3 w-full sm:ml-auto sm:mt-0 sm:w-auto md:ml-0">
                 <form method="GET" action="{{ route('eventAssistant.index', ['idEvent' => $idEvent]) }}">
-                    <div class="relative w-56 text-slate-500">
-                        <input type="text" name="search" class="!box w-56 pr-10" value="{{ request()->input('search') }}" placeholder="Buscar..." />
+                    <!-- Mantener rango de fechas si existen -->
+                    @if (!empty($startDate) && !empty($endDate))
+                        <input type="hidden" name="startDate" value="{{ $startDate }}">
+                        <input type="hidden" name="endDate" value="{{ $endDate }}">
+                    @endif
 
+                    <div class="relative w-56 text-slate-500">
+                        <input
+                            type="text"
+                            name="search"
+                            class="!box w-56 pr-10"
+                            value="{{ request()->input('search') }}"
+                            placeholder="Buscar..."
+                        />
                         <button type="submit" class="absolute inset-y-0 right-0 my-auto mr-3 h-4 w-4">
                             <x-base.lucide icon="Search" />
                         </button>
                     </div>
                 </form>
             </div>
+
 
             <a class="ml-3" href="{{ route('eventAssistant.specificSearch', ['idEvent' => $idEvent]) }}">
                 <x-base.button class="mr-2 shadow-md" variant="primary">
@@ -563,7 +616,7 @@
 
         <!-- BEGIN: Pagination -->
         <div class="intro-y col-span-12 flex flex-wrap items-center sm:flex-row sm:flex-nowrap">
-            {{ $asistentes->links() }}
+            {{ $asistentes->appends(request()->query())->links() }}
         </div>
         <!-- END: Pagination -->
     </div>

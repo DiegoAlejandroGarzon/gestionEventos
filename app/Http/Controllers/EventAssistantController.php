@@ -34,6 +34,7 @@ class EventAssistantController extends Controller
 
         $startDate = $request->input('startDate');
         $endDate = $request->input('endDate');
+        $selectedTicketIds = $request->input('ticket_type_ids', []);
 
         // Si el evento tiene una sola fecha, no pedir rango
         if ($event->event_date == $event->event_date_end) {
@@ -51,13 +52,16 @@ class EventAssistantController extends Controller
         if ($startDate && $endDate) {
             $ticketTypesQuery->whereBetween('entry_date', [$startDate, $endDate]);
         }
+        if (!empty($selectedTicketIds)) {
+            $ticketTypesQuery->whereIn('id', $selectedTicketIds);
+        }
 
         $ticketTypes = $ticketTypesQuery->get();
 
         // Número de asistentes registrados para el evento
         $totalTickets = EventAssistant::where('event_id', $idEvent)->where('has_entered', true)->count();
         $ticketsNoEntered = EventAssistant::where('event_id', $idEvent)->where('has_entered', false)->count();
-        $tickets = TicketType::where('event_id', $idEvent)->get();
+        $tickets = $ticketTypesQuery->get();
 
         // Capacidad total del evento
         $capacity = $event->capacity;
@@ -139,7 +143,17 @@ class EventAssistantController extends Controller
 
         $asistentes = $query->paginate(10);
 
-        return view('eventAssistant.index', compact(['asistentes', 'idEvent', 'dataGeneral', 'event', 'ticketsInfo', 'tickets', 'startDate', 'endDate']));
+        return view('eventAssistant.index', compact([
+            'asistentes',
+            'idEvent',
+            'dataGeneral',
+            'event',
+            'ticketsInfo',
+            'tickets',
+            'startDate',
+            'endDate',
+            'selectedTicketIds'
+        ]));
     }
 
     // Muestra la vista para subir el archivo de Excel

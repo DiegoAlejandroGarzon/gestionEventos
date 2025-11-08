@@ -14,6 +14,7 @@ class Conversations extends Model
 
     protected $fillable = [
         'users_id',
+        'number_whatsapp_sysuser_id',
         'external_phone_number',
         'started_at',
         'last_message_at',

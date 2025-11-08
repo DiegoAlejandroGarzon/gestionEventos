@@ -203,9 +203,13 @@ class InteractionNfmReplyService
                     'guardian_id' => null,
                     
                     'Barrio' => $response_json['Barrio'],
-                    'Grupo_poblacional' => isset($response_json['Grupo_poblacional'])
-                        ? json_encode($response_json['Grupo_poblacional'], JSON_UNESCAPED_UNICODE)
-                        : json_encode([]),
+                    'Grupo_poblacional' => $response_json['Grupo_poblacional'],
+                    
+                    'Identidad_sexual' => isset($response_json['Identidad_sexual'])
+                        ? json_encode($response_json['Identidad_sexual'], JSON_UNESCAPED_UNICODE)
+                        : null,
+                    'Discapacidad' => isset($response_json['Discapacidad'])?$response_json['Discapacidad']:null,
+                    
                     'Edad' => $response_json['Edad']
                 ];
                 

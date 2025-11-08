@@ -45,7 +45,11 @@ class HandleWebhookService
                 // Alcaldia Palmira
                 case "855752667617564":
                 case "845528951979695":
-                    $queryService = new QueryService($this->__externalPhoneNumber, $phoneNId);
+                    if($phoneNId == "855752667617564"){
+                        $queryService = new QueryService($this->__externalPhoneNumber, $phoneNId, 2);
+                    }else{
+                        $queryService = new QueryService($this->__externalPhoneNumber, $phoneNId, 4);
+                    }
                     
                     // SESSION INACTIVA
                     $interactionService = new InteractionService($this->__externalPhoneNumber, $phoneNId);
@@ -55,10 +59,12 @@ class HandleWebhookService
                             break;
                         case "text":
                             // ingresamos el texto
-                            $queryService->storeText($message['text']["body"], $message_whatsapp_id, $timestamp);
+                            $responseInsert = $queryService->storeText($message['text']["body"], $message_whatsapp_id, $timestamp);
 
                             // verificamos
-                            $interactionService->verifiedExist();
+                            if($responseInsert != null){
+                                $interactionService->verifiedExist();
+                            }
                             break;
 
                     }

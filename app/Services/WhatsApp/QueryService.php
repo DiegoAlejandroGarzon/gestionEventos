@@ -4,6 +4,7 @@ namespace App\Services\WhatsApp;
 
 use App\Models\Conversations;
 use App\Models\ConversationsMessages;
+use App\Models\NumbersWhatsappSysUser;
 use App\Services\ConversationService;
 use Carbon\Carbon;
 use App\Services\WhatsApp\CurlService;
@@ -20,23 +21,32 @@ class QueryService
     public function storeText($text, $msgWhatId, $timestamp, $profileName=null) {
         
         $conversation = $this->validateExistConversation($text, $profileName);
-        if($conversation != null){
-            
-            // creamos el message
-            $conversationsMessages = new ConversationsMessages();
-            $conversationsMessages->users_id = $conversation->users_id;
-            $conversationsMessages->conversations_id = $conversation->id;        
-            $conversationsMessages->content = $text;
-            $conversationsMessages->direction = "received";
-            $conversationsMessages->message_what_id = $msgWhatId;
-            $conversationsMessages->type = "text";
-            $conversationsMessages->origin = "user";
-            $conversationsMessages->received_at = Carbon::createFromTimestamp($timestamp)->toDateTimeString();
-            $conversationsMessages->save();
-            
-            return $conversationsMessages;
-        }else{
+        if ($conversation == null) {
             return null;
+        }
+
+        try {
+            $conversationsMessages = ConversationsMessages::create([
+                'users_id' => $conversation->users_id,
+                'conversations_id' => $conversation->id,
+                'content' => $text,
+                'direction' => 'received',
+                'message_what_id' => $msgWhatId,
+                'type' => 'text',
+                'origin' => 'user',
+                'received_at' => Carbon::createFromTimestamp($timestamp)->toDateTimeString(),
+            ]);
+
+            return $conversationsMessages;
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            file_put_contents(storage_path().'/logs/log_webhook.txt', "<- EXCEPION ->" .json_encode([]). PHP_EOL, FILE_APPEND);
+            // Si hay un error de duplicado (unique constraint), devolvemos null
+            if ($e->getCode() === '23000') { // Código SQL de violación de UNIQUE
+                return null;
+            }
+            // Re-lanzar cualquier otra excepción
+            throw $e;
         }
     }
     
@@ -143,28 +153,36 @@ class QueryService
     }
     
     private function validateExistConversation($textMessage, $nameFrom=null){
+        // consultamos el id de whatsapp
+        $numbersWhatsappSysUser = new NumbersWhatsappSysUser();
+        $dataResponse = $numbersWhatsappSysUser->where("phone_number_id", $this->__numberWhatssAppId)->get();
         
-        $conversation = Conversations::firstOrCreate(
-            ['external_phone_number' => $this->__externalPhoneNumber],
-            [
-                'users_id' => null,
-                'external_phone_number' => $this->__externalPhoneNumber,
-                'started_at' => now(),
-                'last_message_at' => now(),
-                'last_message_truncated' => strlen($textMessage) > 15 
-                        ? substr($textMessage, 0, 15) . '...' 
-                        : $textMessage
-            ]
-        );
+        if(count($dataResponse)>0){
+            $conversation = Conversations::firstOrCreate(
+                ['external_phone_number' => $this->__externalPhoneNumber, 'number_whatsapp_sysuser_id' => $dataResponse[0]->id], // condición de búsqueda
+                [
+                    'users_id' => $dataResponse[0]->sys_users_id,
+                    'number_whatsapp_sysuser_id' => $dataResponse[0]->id,
+                    'external_phone_number' => $this->__externalPhoneNumber,
+                    'started_at' => now(),
+                    'last_message_at' => now(),
+                    'last_message_truncated' => strlen($textMessage) > 15 
+                            ? substr($textMessage, 0, 15) . '...' 
+                            : $textMessage
+                ]
+            );
+        
 
-        // Ahora puedes actualizar cualquier campo adicional
-        $conversation->last_message_at = now();
-        $conversation->last_message_truncated = strlen($textMessage) > 15 
-            ? substr($textMessage, 0, 15) . '...' 
-            : $textMessage;
-        $conversation->save();
-
-        return $conversation;
+            // Ahora puedes actualizar cualquier campo adicional
+            $conversation->last_message_at = now();
+            $conversation->last_message_truncated = strlen($textMessage) > 15 
+                ? substr($textMessage, 0, 15) . '...' 
+                : $textMessage;
+            $conversation->save();
+            return $conversation;
+        }else{
+            return null;
+        }
     }
     
     public function getSafeExtensionFromMime($mime)

@@ -86,33 +86,47 @@
                                 id="multiple-item-slider"
                                 config="multiple-items"
                             >
-                                <div class="px-2">
-                                    <div class="h-full rounded-md bg-slate-100 dark:bg-darkmode-400">
-                                        <div>ASISTENCIA GENERAL</div>
-                                        <div class="intro-y box mt-5 p-5 col-span-12 items-center">
-                                            <div class="mt-3">
-                                                <x-chart-assistants />
-                                            </div>
-                                            <div class="mx-auto mt-8 w-52 sm:w-auto">
-                                                <div class="flex items-center">
-                                                    <div class="mr-3 h-2 w-2 rounded-full bg-primary"></div>
-                                                    <span class="truncate">Entradas registradas</span>
-                                                    <span class="ml-auto font-medium">{{ $dataGeneral['soldTickets'] }} ({{ round(($dataGeneral['soldTickets'] / $dataGeneral['capacity']) * 100, 2) }}%)</span>
-                                                </div>
-                                                <div class="mt-4 flex items-center">
-                                                    <div class="mr-3 h-2 w-2 rounded-full bg-warning"></div>
-                                                    <span class="truncate">Entradas No ingresadas</span>
-                                                    <span class="ml-auto font-medium">{{ $dataGeneral['ticketsNoEntered'] }} ({{ round(($dataGeneral['ticketsNoEntered'] / $dataGeneral['capacity']) * 100, 2) }}%)</span>
-                                                </div>
-                                                <div class="mt-4 flex items-center">
-                                                    <div class="mr-3 h-2 w-2 rounded-full bg-pending"></div>
-                                                    <span class="truncate">Entradas Disponibles</span>
-                                                    <span class="ml-auto font-medium">{{ $dataGeneral['availableTickets'] }} ({{ round(($dataGeneral['availableTickets'] / $dataGeneral['capacity']) * 100, 2) }}%)</span>
-                                                </div>
-                                            </div>
+                            <div class="px-2">
+                                <div class="h-full rounded-md bg-slate-100 dark:bg-darkmode-400">
+                                    <div>ASISTENCIA GENERAL</div>
+                                    <div class="intro-y box mt-5 p-5 col-span-12 items-center">
+                                        <div class="mt-3">
+                                            <x-chart-assistants />
+                                        </div>
+
+                                        {{-- ✅ Leyenda interactiva con checkboxes --}}
+                                        <div class="mx-auto mt-8 w-52 sm:w-auto legend-controls" data-chart-id="report-pie-chart">
+                                            <label class="flex items-center mt-2">
+                                                <input type="checkbox" class="chart-toggle mr-2" data-index="0" checked>
+                                                <span class="flex items-center">
+                                                    <span class="mr-2 h-2 w-2 rounded-full bg-primary"></span>
+                                                    Entradas registradas
+                                                </span>
+                                                <span class="ml-auto font-medium">{{ $dataGeneral['soldTickets'] }} ({{ round(($dataGeneral['soldTickets'] / $dataGeneral['capacity']) * 100, 2) }}%)</span>
+                                            </label>
+
+                                            <label class="flex items-center mt-2">
+                                                <input type="checkbox" class="chart-toggle mr-2" data-index="1" checked>
+                                                <span class="flex items-center">
+                                                    <span class="mr-2 h-2 w-2 rounded-full bg-warning"></span>
+                                                    Entradas No ingresadas
+                                                </span>
+                                                <span class="ml-auto font-medium">{{ $dataGeneral['ticketsNoEntered'] }} ({{ round(($dataGeneral['ticketsNoEntered'] / $dataGeneral['capacity']) * 100, 2) }}%)</span>
+                                            </label>
+
+                                            <label class="flex items-center mt-2">
+                                                <input type="checkbox" class="chart-toggle mr-2" data-index="2" checked>
+                                                <span class="flex items-center">
+                                                    <span class="mr-2 h-2 w-2 rounded-full bg-pending"></span>
+                                                    Entradas Disponibles
+                                                </span>
+                                                <span class="ml-auto font-medium">{{ $dataGeneral['availableTickets'] }} ({{ round(($dataGeneral['availableTickets'] / $dataGeneral['capacity']) * 100, 2) }}%)</span>
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+
                                 @foreach ($ticketsInfo as $ticketInfo)
                                 <div class="px-2">
                                     <div class="h-full rounded-md bg-slate-100 dark:bg-darkmode-400">
@@ -128,23 +142,24 @@
                                                     ></x-base.chart>
                                                 </div>
                                             </div>
-                                            <div class="mx-auto mt-8 w-52 sm:w-auto">
-                                                <div class="flex items-center">
-                                                    <div class="mr-3 h-2 w-2 rounded-full bg-primary"></div>
-                                                    <span class="truncate">Entradas registradas</span>
+                                            <div class="flex flex-col space-y-2 mt-4 text-left text-sm legend-controls" data-chart-id="report-pie-chart-{{ $ticketInfo['ticket_type_id'] }}">
+                                                <label class="flex items-center space-x-2">
+                                                    <input type="checkbox" class="chart-toggle" data-index="0" checked>
+                                                    <span><span class="inline-block w-3 h-3 rounded-full bg-primary mr-2"></span> Entradas registradas</span>
                                                     <span class="ml-auto font-medium">{{ $ticketInfo['soldTickets'] }} ({{ round(($ticketInfo['soldTickets'] / $ticketInfo['capacity']) * 100, 2) }}%)</span>
-                                                </div>
-                                                <div class="mt-4 flex items-center">
-                                                    <div class="mr-3 h-2 w-2 rounded-full bg-warning"></div>
-                                                    <span class="truncate">Entradas No ingresadas</span>
+                                                </label>
+                                                <label class="flex items-center space-x-2">
+                                                    <input type="checkbox" class="chart-toggle" data-index="1" checked>
+                                                    <span><span class="inline-block w-3 h-3 rounded-full bg-warning mr-2"></span> Entradas NO ingresadas</span>
                                                     <span class="ml-auto font-medium">{{ $ticketInfo['ticketTypeNoEntered'] }} ({{ round(($ticketInfo['ticketTypeNoEntered'] / $ticketInfo['capacity']) * 100, 2) }}%)</span>
-                                                </div>
-                                                <div class="mt-4 flex items-center">
-                                                    <div class="mr-3 h-2 w-2 rounded-full bg-pending"></div>
-                                                    <span class="truncate">Entradas Disponibles</span>
+                                                </label>
+                                                <label class="flex items-center space-x-2">
+                                                    <input type="checkbox" class="chart-toggle" data-index="2" checked>
+                                                    <span><span class="inline-block w-3 h-3 rounded-full bg-pending mr-2"></span> Entradas Disponibles</span>
                                                     <span class="ml-auto font-medium">{{ $ticketInfo['availableTickets'] }} ({{ round(($ticketInfo['availableTickets'] / $ticketInfo['capacity']) * 100, 2) }}%)</span>
-                                                </div>
+                                                </label>
                                             </div>
+
                                         </div>
                                     </div>
                                 </div>

@@ -34,7 +34,7 @@ class EventAssistantsExport implements FromCollection, WithHeadings
             'users.*',
             'events.name as event_name',
             'events.status as event_status',
-            'events.status as event_city_id',
+            'events.city_id as event_city_id',
             )
             ->join('users', 'event_assistants.user_id', '=', 'users.id')
             ->join('events', 'event_assistants.event_id', '=', 'events.id')

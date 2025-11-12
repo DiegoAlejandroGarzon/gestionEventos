@@ -61,6 +61,7 @@ Route::post('/cuopon/register/{public_link}', [CouponController::class, 'submitP
 Route::get('/evento/{public_link}/download-pdf/{id}', [PDFController::class, 'getPDFEvento'])->name('event.download.pdf');
 Route::get('/check-courtesy-code/{eventId}/{code}', [CouponController::class, 'checkCourtesyCode'])->name('check.courtesy.code');
 Route::get('/get-seats-by-ticket-type/{ticketTypeId}', [SeatController::class, 'getSeatsByTicketType']);
+Route::get('/cities/{department}', [CityController::class, 'getCitiesByDepartment'])->name('getCitiesByDepartment');
 
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
@@ -209,7 +210,6 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/seats/upload/{idEvent}', [SeatController::class, 'uploadExcel'])->name('seats.upload');
     Route::get('/get-event-assistants/{ticketTypeId}', [SeatController::class, 'getEventAssistants']);
 });
-Route::get('/cities/{department}', [CityController::class, 'getCitiesByDepartment']);
 
 Route::controller(PageController::class)->group(function () {
     Route::get('/dashboard', 'dashboardOverview1')->name('dashboard-overview-1');

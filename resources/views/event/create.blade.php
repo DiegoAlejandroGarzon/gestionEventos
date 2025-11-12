@@ -565,7 +565,7 @@
             citySelect.innerHTML = '<option></option>';
 
             if (departmentId) {
-                fetch('/cities/' + departmentId)
+                fetch('{{ route('getCitiesByDepartment', '') }}/' + departmentId)
                     .then(response => response.json())
                     .then(data => {
                         // Verifica si 'data.cities' existe y es un array

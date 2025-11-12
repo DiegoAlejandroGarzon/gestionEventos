@@ -259,7 +259,7 @@
                                     $options = $parameter['options'] ?? [];
                                 @endphp
                                 <div class="mt-4">
-                                    <x-base.form-label for="{{ $name }}">{{ $label }}</x-base.form-label>
+                                    <x-base.form-label for="{{ $name }}">{{ $name }}</x-base.form-label>
                                     @if ($type === 'select')
                                         <x-base.tom-select
                                             class="w-full {{ $errors->has($name) ? 'border-red-500' : '' }}"
@@ -355,7 +355,7 @@
                     citySelect.innerHTML = '<option></option>';
 
                     if (departmentId) {
-                        fetch('/cities/' + departmentId)
+                        fetch('{{ route('getCitiesByDepartment', '') }}/' + departmentId)
                             .then(response => response.json())
                             .then(data => {
                                 // Verifica si 'data.cities' existe y es un array

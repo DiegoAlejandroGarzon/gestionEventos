@@ -53,7 +53,7 @@
                     </div>
 
 
-                    <!-- Departamento -->
+                    {{-- <!-- Departamento -->
                     <div class="mt-3">
                         <x-base.form-label for="department_id">Departamento</x-base.form-label>
                         <x-base.tom-select
@@ -92,7 +92,7 @@
                         @error('city_id')
                             <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
                         @enderror
-                    </div>
+                    </div> --}}
 
                     <div class="mt-3 box">
                         <x-base.form-label class="m-2">Fechas Evento</x-base.form-label>
@@ -725,10 +725,9 @@
             citySelect.innerHTML = '<option></option>';
 
             if (departmentId) {
-                fetch('/cities/' + departmentId)
+                fetch('{{ route('getCitiesByDepartment', '') }}/' + departmentId)
                     .then(response => response.json())
                     .then(data => {
-                        // Verifica si 'data.cities' existe y es un array
                         if (Array.isArray(data.cities)) {
                             updateCityOptions(data.cities);
                         } else {

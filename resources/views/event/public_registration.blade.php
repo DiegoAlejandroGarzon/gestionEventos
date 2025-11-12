@@ -88,23 +88,50 @@
                             <!-- Selector de Fecha -->
                             <div class="mt-3">
                                 <x-base.form-label for="filter_date">Seleccionar Fecha</x-base.form-label>
-                                <x-base.tom-select id="filter_date" name="filter_date" onchange="filterTicketsByDate()" class="w-full">
+
+                                @php
+                                    $availableDates = collect($ticketTypes)
+                                        ->pluck('entry_date')
+                                        ->filter()
+                                        ->unique()
+                                        ->sort();
+
+                                    // Si solo hay una fecha disponible, la guardamos
+                                    $singleDate = $availableDates->count() === 1 ? $availableDates->first() : null;
+                                @endphp
+
+                                <x-base.tom-select
+                                    id="filter_date"
+                                    name="filter_date"
+                                    onchange="filterTicketsByDate()"
+                                    class="w-full"
+                                >
                                     <option value="">Seleccione una fecha</option>
-                                    @php
-                                        $availableDates = collect($ticketTypes)
-                                            ->pluck('entry_date')
-                                            ->filter()
-                                            ->unique()
-                                            ->sort();
-                                    @endphp
+
                                     @foreach ($availableDates as $date)
-                                        <option value="{{ $date }}">
+                                        <option
+                                            value="{{ $date }}"
+                                            @if($singleDate && $singleDate === $date) selected @endif
+                                        >
                                             {{ \Carbon\Carbon::parse($date)->translatedFormat('l, d F Y') }}
                                         </option>
                                     @endforeach
                                 </x-base.tom-select>
                             </div>
 
+                            @if($singleDate)
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', function () {
+                                        // Esperamos a que el DOM cargue y el tom-select esté listo
+                                        const select = document.getElementById('filter_date');
+                                        if (select) {
+                                            select.value = "{{ $singleDate }}";
+                                            // Dispara el evento para ejecutar el filtro automáticamente
+                                            filterTicketsByDate();
+                                        }
+                                    });
+                                </script>
+                            @endif
 
                             <!-- Selector de Ticket -->
                             <div class="mt-3">

@@ -523,7 +523,7 @@
                 </x-base.button>
 
                 <!-- Formulario de eliminación -->
-                <form id="delete-form" method="POST" action="">
+                <form id="delete-form" method="DELETE" action="">
                     @csrf
                     @method('DELETE')
                     <x-base.button
@@ -592,7 +592,8 @@
             const id = element.getAttribute('data-id');
             // Establecer la acción del formulario con la ruta dinámica
             const form = document.getElementById('delete-form');
-            form.action = `/assistants/delete/${id}`;
+            // form.action = `/assistants/delete/${id}`;
+            form.action = '{{ route('eventAssistant.singleDelete', '') }}/' + departmentId;
         }
         document.getElementById('generateCouponsButton').addEventListener('click', function () {
             const eventId = {{$idEvent}}; // ID del evento (modificar dinámicamente si es necesario)

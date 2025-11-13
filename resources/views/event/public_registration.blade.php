@@ -5,11 +5,46 @@
 @endsection
 
 @section('content')
+@if($event->color_one !== null)
+    <style>
+        body {
+            overflow-x: hidden;
+        }
+        .bg-color-one {
+            --tw-bg-opacity: 1;
+            background-color: {{$event->color_one}};
+        }
+        .bg-color-two {
+            --tw-bg-opacity: 1;
+            background-color: {{$event->color_two}};
+        }
+        .before\:bg-color-two\/20::before {
+            --tw-bg-opacity: 1;
+            background-color: {{$event->color_two}};
+        }
+        .after\:bg-color-one::after {
+            --tw-bg-opacity: 1;
+            background-color: {{$event->color_one}};
+        }
+        @media (max-width: 1280px) {
+            .lg\:overflow-hidden {
+                overflow: hidden;
+                background-color: {{$event->color_one}};
+            }
+        }
+    </style>
     <div @class([
-        'p-3 sm:px-8 relative min-h-screen bg-primary xl:bg-white dark:bg-darkmode-800 xl:dark:bg-darkmode-600',
-        'before:hidden before:xl:block before:content-[\'\'] before:w-[57%] before:-mt-[28%] before:-mb-[16%] before:-ml-[13%] before:absolute before:inset-y-0 before:left-0 before:transform before:rotate-[-4.5deg] before:bg-primary/20 before:rounded-[100%] before:dark:bg-darkmode-400',
-        'after:hidden after:xl:block after:content-[\'\'] after:w-[57%] after:-mt-[20%] after:-mb-[13%] after:-ml-[13%] after:absolute after:inset-y-0 after:left-0 after:transform after:rotate-[-4.5deg] after:bg-primary after:rounded-[100%] after:dark:bg-darkmode-700',
+        'p-3 sm:px-8 relative h-screen bg-primary xl:bg-white dark:bg-darkmode-800 xl:dark:bg-darkmode-600',
+        'before:hidden before:xl:block before:content-[\'\'] before:w-[57%] before:-mt-[28%] before:-mb-[16%] before:-ml-[13%] before:absolute before:inset-y-0 before:left-0 before:transform before:rotate-[-4.5deg] before:bg-color-two/20 before:rounded-[100%] before:dark:bg-darkmode-400',
+        'after:hidden after:xl:block after:content-[\'\'] after:w-[57%] after:-mt-[20%] after:-mb-[13%] after:-ml-[13%] after:absolute after:inset-y-0 after:left-0 after:transform before:rotate-[-4.5deg] after:bg-color-one after:rounded-[100%] after:dark:bg-darkmode-700',
     ])>
+@else
+    <div @class([
+        'p-3 sm:px-8 relative h-screen bg-primary xl:bg-white dark:bg-darkmode-800 xl:dark:bg-darkmode-600',
+        'before:hidden before:xl:block before:content-[\'\'] before:w-[57%] before:-mt-[28%] before:-mb-[16%] before:-ml-[13%] before:absolute before:inset-y-0 before:left-0 before:transform before:rotate-[-4.5deg] before:bg-primary/20 before:rounded-[100%] before:dark:bg-darkmode-400',
+        'after:hidden after:xl:block after:content-[\'\'] after:w-[57%] after:-mt-[20%] after:-mb-[13%] after:-ml-[13%] after:absolute after:inset-y-0 after:left-0 after:transform before:rotate-[-4.5deg] after:bg-primary after:rounded-[100%] after:dark:bg-darkmode-700',
+    ])>
+@endif
         <div class="container relative z-10 sm:px-10">
             <div class="block grid-cols-2 gap-4 xl:grid">
                 <!-- BEGIN: Event Info -->

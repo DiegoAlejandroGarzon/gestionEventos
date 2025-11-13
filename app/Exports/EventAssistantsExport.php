@@ -35,6 +35,7 @@ class EventAssistantsExport implements FromCollection, WithHeadings
             'events.name as event_name',
             'events.status as event_status',
             'events.city_id as event_city_id',
+            'event_assistants.created_at as asistant_created_at',
             )
             ->join('users', 'event_assistants.user_id', '=', 'users.id')
             ->join('events', 'event_assistants.event_id', '=', 'events.id')
@@ -72,6 +73,7 @@ class EventAssistantsExport implements FromCollection, WithHeadings
                 $user->event_date,
                 City::find($user->event_city_id)?->name,
                 $user->address,
+                $user->asistant_created_at,
             ]);
             $rows[] = $row;
             $index++;
@@ -99,7 +101,8 @@ class EventAssistantsExport implements FromCollection, WithHeadings
             'Nombre Evento',
             'Fecha Evento',
             'Ciudad Evento',
-            'Direccion Evento'
+            'Direccion Evento',
+            'Fecha Inscripción',
         ]);
         return $headings;
     }

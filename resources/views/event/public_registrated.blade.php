@@ -14,9 +14,11 @@
 
 @if($event->color_one !== null)
     <style>
-        body {
-            overflow-x: hidden;
+        @media (min-width: 1280px) {
+            body { overflow: hidden; } /* evita scroll vertical y horizontal */
+            .lg\:overflow-hidden { overflow: hidden; background-color: {{$event->color_one}}; }
         }
+
         .bg-color-one {
             --tw-bg-opacity: 1;
             background-color: {{$event->color_one}};
@@ -55,21 +57,26 @@
         <div class="container relative z-10 sm:px-10">
             <div class="block grid-cols-2 gap-4 xl:grid">
                 <!-- BEGIN: Event Info -->
-                <div class="hidden min-h-screen flex-col xl:flex">
-                    <img class="w-6" src="{{ Vite::asset('resources/images/logo.svg') }}" alt="" />
-                    <span class="ml-3 text-lg text-white">ValiApp</span>
-                    <div class="my-auto">
-                        @if ($event->header_image_path)
-                            <img class="-intro-x -mt-16 w-1/2" src="{{ asset('storage/' . $event->header_image_path) }}" alt="Imagen del evento" />
-                        @else
-                            <img class="-intro-x -mt-16 w-1/2" src="{{ Vite::asset('resources/images/illustration.svg') }}" alt="" />
-                        @endif
-                        <div class="-intro-x mt-10 text-4xl font-medium leading-tight text-white">
+                <div
+                    class="hidden relative min-h-screen xl:flex flex-col justify-center items-center text-center text-white bg-cover bg-center"
+                    style="background-image: url('{{ $event->header_image_path ? asset('storage/' . $event->header_image_path) : Vite::asset('resources/images/illustration.svg') }}'); margin-left: -180px;"
+                >
+                    <!-- Capa gris oscura encima -->
+                    <div class="absolute inset-0 bg-black/50"></div>
+
+                    <!-- Contenido textual encima de la capa -->
+                    <div class="relative z-10 p-8">
+                        <div class="flex items-center justify-center mb-6">
+                            <img class="w-10" src="{{ Vite::asset('resources/images/logo.svg') }}" alt="Logo" />
+                            <span class="ml-3 text-lg font-semibold">ValiApp</span>
+                        </div>
+
+                        <h1 class="text-4xl font-bold mb-4 leading-tight">
                             PROYECTO EVENTOS
-                        </div>
-                        <div class="-intro-x mt-5 text-lg text-white text-opacity-70 dark:text-slate-400">
+                        </h1>
+                        <p class="text-lg text-white/90 max-w-md mx-auto">
                             Registrar eventos y llevar su gestión
-                        </div>
+                        </p>
                     </div>
                 </div>
                 <!-- END: Event Info -->

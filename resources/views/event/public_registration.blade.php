@@ -7,8 +7,9 @@
 @section('content')
 @if($event->color_one !== null)
     <style>
-        body {
-            overflow-x: hidden;
+        @media (min-width: 1280px) {
+            body { overflow: hidden; } /* evita scroll vertical y horizontal */
+            .lg\:overflow-hidden { overflow: hidden; background-color: {{$event->color_one}}; }
         }
         .bg-color-one {
             --tw-bg-opacity: 1;
@@ -75,10 +76,10 @@
                 <!-- END: Event Info -->
 
                 <!-- BEGIN: Registration Form-->
-                <div class="intro-x mt-8 h-[85vh] px-1 xl:px-0">
+                <div class="intro-x mt-8 max-h-[90vh] px-1 xl:px-0 overflow-y-auto" style="-webkit-overflow-scrolling: touch;">
 
                     <div
-                        class="mx-auto my-auto w-full rounded-md bg-white px-5 py-8 shadow-md dark:bg-darkmode-600 sm:w-3/4 sm:px-8 lg:w-2/4 xl:ml-20 xl:w-auto xl:bg-transparent xl:p-0 xl:shadow-none">
+                        class="box mx-auto my-auto w-full rounded-md bg-white px-5 py-8 shadow-md dark:bg-darkmode-600 sm:w-3/4 sm:px-8 lg:w-2/4 xl:ml-20 xl:w-auto xl:bg-transparent xl:shadow-none">
                         <h2 class="intro-x text-center text-2xl font-bold xl:text-left xl:text-3xl">
                             Inscripción para el evento: {{ $event->name }}
                         </h2>
@@ -377,7 +378,7 @@
                                 </x-base.button>
                             </div>
                         </form>
-                    </div>
+                </div>
 
                 </div>
             </div>

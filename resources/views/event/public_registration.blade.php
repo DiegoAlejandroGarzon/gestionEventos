@@ -161,11 +161,10 @@
                             @if($singleDate)
                                 <script>
                                     document.addEventListener('DOMContentLoaded', function () {
-                                        // Esperamos a que el DOM cargue y el tom-select esté listo
                                         const select = document.getElementById('filter_date');
                                         if (select) {
                                             select.value = "{{ $singleDate }}";
-                                            // Dispara el evento para ejecutar el filtro automáticamente
+                                            // Ejecuta el filtro automáticamente
                                             filterTicketsByDate();
                                         }
                                     });
@@ -606,6 +605,12 @@
                 }
 
                 tomSelect.refreshOptions(false);
+
+                // Si solo hay un ticket disponible, seleccionarlo automáticamente
+                if (filteredTickets.length === 1) {
+                    const singleTicket = filteredTickets[0];
+                    tomSelect.setValue(singleTicket.id);
+                }
             }
 
         </script>

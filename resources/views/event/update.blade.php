@@ -204,9 +204,9 @@
                     </div>
 
                     <!-- Tipos de Entradas -->
-                    <div class="mt-3">
-                        <x-base.form-label>Tipos de Entradas</x-base.form-label>
-                        <div id="ticket-types-container">
+                    <div class="mt-3 box intro-x mt-8 max-h-[90vh] px-1 xl:px-0 overflow-y-auto">
+                        <x-base.form-label class="m-2">Tipos de Entradas</x-base.form-label>
+                        <div id="ticket-types-container" class="m-2">
                             @foreach($event->ticketTypes as $index => $ticket)
                                 <div class="flex items-center mt-2" id="ticket_type_{{ $index }}_wrapper">
                                     <!-- Campo oculto para enviar el ID -->
@@ -284,7 +284,7 @@
                             @endforeach
                         </div>
                         <x-base.button
-                            class="mt-3"
+                            class="m-3"
                             type="button"
                             variant="outline-secondary"
                             onclick="addTicketType()"

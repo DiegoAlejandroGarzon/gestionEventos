@@ -40,10 +40,27 @@ class InteractionListReplyService
         switch($list_reply['id']){
             
             // reserva pesebre mas grande
+            case "reservar_boletas_funcionarios":
+                // consultamos los aforos de los 7 dias actuales
+                $eventService = new EventService();
+                $arrDataDaysFrees = $eventService->getAvailableDaysOnly(5, 3, "2025-11-28");
+                $menuCustomService = new MenuCustomService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
+                $sendEstructuraa = $menuCustomService->sendMenu_selectDia($arrDataDaysFrees);
+                
+                $queryService->storeResponseAutoBot(
+                    "Respuesta automática",
+                    null,
+                    "text",
+                    "auto_text",
+                    $sendEstructuraa
+                );
+                break;
+            
+            // reserva pesebre mas grande
             case "reservar_boletas":
                 // consultamos los aforos de los 7 dias actuales
                 $eventService = new EventService();
-                $arrDataDaysFrees = $eventService->getAvailableDaysOnly();
+                $arrDataDaysFrees = $eventService->getAvailableDaysOnly(5, 3, "2025-12-01");
                 $menuCustomService = new MenuCustomService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
                 $sendEstructuraa = $menuCustomService->sendMenu_selectDia($arrDataDaysFrees);
                 
@@ -144,13 +161,13 @@ class InteractionListReplyService
             default:
                 if (str_starts_with($list_reply['id'], 'seleccion_dia_')) {
                     $fechaSeleccionada = str_replace('seleccion_dia_', '', $list_reply['id']);
-                    $arrDays = explode("|", $fechaSeleccionada);
+                    $arrDays = explode("|", $fechaSeleccionada); // [0] eventID
                     $fechaSeleccionada = $arrDays[1];
 
                     $eventService = new EventService();
                     
-                    if($arrDays[0] == 2){
-                        $availabilityData = $eventService->getDaysAndTimesFrees($arrDays[1]);
+                    if($arrDays[0] == 2 || $arrDays[0] == 5){
+                        $availabilityData = $eventService->getDaysAndTimesFrees($arrDays[1], $arrDays[0]);
                     }
                     elseif($arrDays[0] == 4){
                         $availabilityData = $eventService->getDaysAndTimesFreesPanaFest($arrDays[1]);

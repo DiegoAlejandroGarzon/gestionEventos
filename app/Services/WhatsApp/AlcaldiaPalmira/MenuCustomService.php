@@ -27,14 +27,14 @@ class MenuCustomService
         $culturalRows = [];
 
         // Condicional solo para los rows
-        if ($this->__numberWhatssAppId === '855752667617564') {
+        if ($this->__numberWhatssAppId === '855752667617564') { // linea john
             // Si es este número, muestra este evento
             $culturalRows[] = [
-                'id' => 'reservar_boletas',
+                'id' => 'reservar_boletas_funcionarios',
                 'title' => '🐪️ Pesebre en vivo',
                 'description' => 'Vive la magia con el pesebre más grande del mundo'
             ];
-        } elseif($this->__numberWhatssAppId === '845528951979695') {
+        } elseif($this->__numberWhatssAppId === '845528951979695') { // oficial palmira
             // Para otros números, mostramos otra opción
             $culturalRows[] = [
                 'id' => 'alcapalmira_register_panafest',

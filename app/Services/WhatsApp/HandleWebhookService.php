@@ -43,12 +43,12 @@ class HandleWebhookService
             switch($phoneNId){
                 
                 // Alcaldia Palmira
-                case "855752667617564":
-                case "845528951979695":
+                case "855752667617564": // linea john
+                case "845528951979695": // OFicial palmira
                     if($phoneNId == "855752667617564"){
-                        $queryService = new QueryService($this->__externalPhoneNumber, $phoneNId, 2);
+                        $queryService = new QueryService($this->__externalPhoneNumber, $phoneNId);
                     }else{
-                        $queryService = new QueryService($this->__externalPhoneNumber, $phoneNId, 4);
+                        $queryService = new QueryService($this->__externalPhoneNumber, $phoneNId);
                     }
                     
                     // SESSION INACTIVA

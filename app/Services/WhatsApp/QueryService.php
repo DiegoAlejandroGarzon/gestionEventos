@@ -40,7 +40,7 @@ class QueryService
             return $conversationsMessages;
 
         } catch (\Illuminate\Database\QueryException $e) {
-            file_put_contents(storage_path().'/logs/log_webhook.txt', "<- EXCEPION ->" .json_encode([]). PHP_EOL, FILE_APPEND);
+            file_put_contents(storage_path().'/logs/log_webhook.txt', "<- EXCEPION storeText ->" .json_encode([]). PHP_EOL, FILE_APPEND);
             // Si hay un error de duplicado (unique constraint), devolvemos null
             if ($e->getCode() === '23000') { // Código SQL de violación de UNIQUE
                 return null;
@@ -83,26 +83,34 @@ class QueryService
     }
     
     public function storeResponseAutoUser($text, $msgWhatId, $type_response, $response_text, $timestamp) {
-        
         $conversation = $this->validateExistConversation($text);
-        if($conversation != null){
-            
-            // creamos el message
-            $conversationsMessages = new ConversationsMessages();
-            $conversationsMessages->users_id = $conversation->users_id;
-            $conversationsMessages->conversations_id = $conversation->id;        
-            $conversationsMessages->content = $text;
-            $conversationsMessages->content_response = $response_text; // id de la opcion seleccionada
-            $conversationsMessages->direction = "received";
-            $conversationsMessages->message_what_id = $msgWhatId;
-            $conversationsMessages->type = $type_response;
-            $conversationsMessages->origin = "user";
-            $conversationsMessages->received_at = Carbon::createFromTimestamp($timestamp)->toDateTimeString();
-            $conversationsMessages->save();
+        if ($conversation == null) {
+            return null;
+        }
+
+        try {
+            $conversationsMessages = ConversationsMessages::create([
+                'users_id' => $conversation->users_id,
+                'conversations_id' => $conversation->id,
+                'content' => $text,
+                'content_response' => $response_text,
+                'direction' => 'received',
+                'message_what_id' => $msgWhatId,
+                'type' => $type_response,
+                'origin' => 'user',
+                'received_at' => Carbon::createFromTimestamp($timestamp)->toDateTimeString(),
+            ]);
             
             return $conversationsMessages;
-        }else{
-            return null;
+            
+        } catch (\Illuminate\Database\QueryException $e) {
+            file_put_contents(storage_path().'/logs/log_webhook.txt', "<- EXCEPION storeResponseAutoUser ->" .json_encode([]). PHP_EOL, FILE_APPEND);
+            // Si hay un error de duplicado (unique constraint), devolvemos null
+            if ($e->getCode() === '23000') { // Código SQL de violación de UNIQUE
+                return null;
+            }
+            // Re-lanzar cualquier otra excepción
+            throw $e;
         }
     }
     

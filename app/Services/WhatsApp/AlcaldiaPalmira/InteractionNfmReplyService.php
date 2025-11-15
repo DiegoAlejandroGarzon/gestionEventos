@@ -28,13 +28,17 @@ class InteractionNfmReplyService
         $response_json = json_decode($nfm_reply['response_json'], true);
         // ingresamos la respuesta del usuario en BD y enviamos pusher
         $queryService = new QueryService($this->__externalPhoneNumber, $this->__numberWhatssAppId);
-        $queryService->storeResponseAutoUser(
+        $responseAutoUser = $queryService->storeResponseAutoUser(
             "Envio de formulario", 
             $message_whatsapp_id, 
             "response_text_nfm_reply",
             $response_json['request_action'],
             $timestamp
         );
+        
+        if($responseAutoUser == null){
+            return true;
+        }
         
         // consultamos el id del ticket
         $conversationsMessages = new ConversationsMessages();
@@ -203,7 +207,7 @@ class InteractionNfmReplyService
                     'guardian_id' => null,
                     
                     'Barrio' => $response_json['Barrio'],
-                    'Grupo_poblacional' => $response_json['Grupo_poblacional'],
+                    'Grupo_poblacional' => ($response_json['Grupo_poblacional']=="Otro")?$response_json['Grupo_poblacional_otro']:$response_json['Grupo_poblacional'],
                     
                     'Identidad_sexual' => isset($response_json['Identidad_sexual'])
                         ? json_encode($response_json['Identidad_sexual'], JSON_UNESCAPED_UNICODE)
@@ -282,7 +286,6 @@ class InteractionNfmReplyService
                     }
                 }
                 break;
-            
             
         }
     }

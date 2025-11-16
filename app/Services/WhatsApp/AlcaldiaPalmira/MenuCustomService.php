@@ -44,10 +44,10 @@ class MenuCustomService
         }
 
         // Sección de eventos culturales (siempre presente)
-        $sections[] = [
+        /*$sections[] = [
             'title' => 'Eventos culturales 🎭',
             'rows'  => $culturalRows
-        ];
+        ];*/
 
         // Esta sección se muestra siempre
         $sections[] = [

@@ -12,7 +12,8 @@ class AdditionalParameter extends Model
     protected $fillable = [
         'event_id',
         'name',
-        'type'
+        'type',
+        'order'
     ];
 
     public function event()

@@ -342,9 +342,23 @@
 
         <!-- BEGIN: Data List -->
         @php
-            // Obtener los parámetros guardados en registration_parameters
-            $selectedFields = json_decode($event->registration_parameters, true) ?? [];
+            // Obtener los parámetros de registration_parameters
+            $rawRegistrationParameters = $event->registration_parameters;
             $additionalParameters = json_decode($event->additionalParameters, true) ?? [];
+            $selectedFieldsData = json_decode($rawRegistrationParameters, true) ?? [];
+
+            // Normalizar los campos seleccionados
+            $selectedFields = [];
+            // Si el primer elemento es una cadena (formato antiguo: ["name", "email"]), usamos los datos directamente.
+            // Si el primer elemento es un array (formato nuevo: [{"name": "name", "order": 1}, ...]), extraemos solo los nombres.
+            if (is_array($selectedFieldsData) && !empty($selectedFieldsData) && is_array($selectedFieldsData[0])) {
+                // Formato nuevo: extraemos solo el valor de 'name'
+                $selectedFields = array_column($selectedFieldsData, 'name');
+            } else {
+                // Formato antiguo o vacío: usamos el array tal cual (solo nombres)
+                $selectedFields = $selectedFieldsData;
+            }
+
         @endphp
         <div class="intro-y col-span-12 overflow-auto lg:overflow-visible">
             <div class="overflow-x-auto">

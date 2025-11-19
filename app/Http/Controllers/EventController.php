@@ -303,11 +303,13 @@ class EventController extends Controller
     {
         // Busca el evento por el enlace público
         $event = Event::where('public_link', $public_link)->firstOrFail();
+        // Obtener parámetros adicionales desde la tabla, respetando el orden
         $additionalParameters = json_decode($event->additionalParameters, true) ?? [];
         $departments = Departament::all();
         $ticketTypes  = TicketType::where('event_id', $event->id)->get();
 
         // Retorna la vista de registro, pasando el evento
+        // return view('event.public_registrationOrden', compact('event', 'departments', 'additionalParameters', 'ticketTypes'));
         return view('event.public_registration', compact('event', 'departments', 'additionalParameters', 'ticketTypes'));
     }
 
@@ -527,8 +529,33 @@ class EventController extends Controller
     public function setRegistrationParameters($id)
     {
         $event = Event::findOrFail($id);
-        $additional_parameters = AdditionalParameter::where('event_id', $id)->get();
-        return view('event.set-registration-parameters', compact('event', 'additional_parameters'));
+
+        $rawParameters = $event->registration_parameters ?? '[]';
+        $parametersArray = json_decode($rawParameters, true);
+        // --- Lógica de Normalización ---
+        $rawParameters = $event->registration_parameters ?? '[]';
+        $decodedData = json_decode($rawParameters, true) ?? [];
+
+        $selectedFields = [];
+        $selectedFieldsOrder = [];
+        // 1. Verificar y Normalizar el formato de registration_parameters
+        if (is_array($decodedData) && !empty($decodedData)) {
+            // Opción A: Formato Nuevo (Array de objetos: [{"name": "name", "order": 1}, ...])
+            // Verificamos si el primer elemento es un array, lo que indica el nuevo formato.
+            if (is_array($decodedData[array_key_first($decodedData)]) && isset($decodedData[array_key_first($decodedData)]['name'])) {
+                $selectedFields = array_column($decodedData, 'name');
+                $selectedFieldsOrder = array_column($decodedData, 'order', 'name');
+            } else {
+                // Opción B: Formato Antiguo (Array simple de nombres: ["name", "email", ...])
+                $selectedFields = $decodedData;
+                // En el formato antiguo, no hay orden guardado, así que $selectedFieldsOrder queda vacío.
+                $selectedFieldsOrder = [];
+            }
+        }
+        // traer parámetros ordenados
+        $additional_parameters = AdditionalParameter::where('event_id', $id)->orderBy('order', 'asc')->get();
+        // dd($additional_parameters);
+        return view('event.set-registration-parameters', compact('event', 'additional_parameters', 'selectedFields', 'selectedFieldsOrder'));
     }
 
     public function storeRegistrationParameters(Request $request, $id)
@@ -539,19 +566,42 @@ class EventController extends Controller
         $request->validate([
             'fields' => 'array',
             'fields.*' => 'in:name,lastname,email,type_document,document_number,phone,status,profile_photo_path,city_id,birth_date',
+            'fields_order' => 'array', // Validación para el array de órdenes
+            'fields_order.*' => 'nullable|integer|min:0', // Cada orden debe ser un entero no negativo
+            'additional_parameters' => 'array',
+            'additional_parameters.*.name' => 'nullable|string|max:255',
+            'additional_parameters.*.type' => 'nullable|string|in:text,number,date,select',
+            'additional_parameters.*.order' => 'nullable|integer|min:0',
         ]);
 
         // Almacenar los campos seleccionados como parámetros de inscripción
-        $parameters = json_encode($request->fields); // Convertir a JSON
+        $selectedFields = $request->input('fields', []);
+        $fieldsOrder = $request->input('fields_order', []);
 
-        $event->registration_parameters = $parameters;
+        $registrationParameters = [];
+
+        // Iterar sobre los campos seleccionados para construir el array con nombre y orden
+        foreach ($selectedFields as $fieldName) {
+            $order = $fieldsOrder[$fieldName] ?? null; // Obtener la orden usando el nombre del campo como clave
+
+            // Solo agregar si el campo es válido (según la validación) y tiene un nombre
+            if ($fieldName) {
+                $registrationParameters[] = [
+                    'name' => $fieldName,
+                    'order' => $order !== null ? intval($order) : null, // Asegurar que sea un entero o null
+                ];
+            }
+        }
+
+        // Almacenar los campos seleccionados con su orden como parámetros de inscripción (JSON)
+        $event->registration_parameters = json_encode($registrationParameters);
         $event->save();
 
-        // Manejar los parámetros adicionales
+        // Manejar los parámetros adicionales enviados desde el formulario
         $additionalParameters = $request->input('additional_parameters', []);
 
         // Obtener los nombres de los parámetros adicionales enviados desde el formulario
-        $newParameterNames = array_column($additionalParameters, 'name');
+        $newParameterNames = array_filter(array_map(fn($p) => $p['name'] ?? null, $additionalParameters));
 
         // Obtener todos los parámetros adicionales actuales en la base de datos para este evento
         $existingParameters = AdditionalParameter::where('event_id', $event->id)->get();
@@ -563,27 +613,34 @@ class EventController extends Controller
             }
         }
 
-        // Agregar o actualizar los parámetros adicionales
-        foreach ($additionalParameters as $param) {
-            if (!empty($param['name']) && !empty($param['type'])) {
-                // Verificar si ya existe un parámetro adicional con el mismo 'name' y 'event_id'
-                $existingParameter = AdditionalParameter::where('event_id', $event->id)
-                    ->where('name', $param['name'])
-                    ->first();
+        // Agregar o actualizar los parámetros adicionales con 'order'
+        foreach ($additionalParameters as $index => $param) {
+            $name = $param['name'] ?? null;
+            $type = $param['type'] ?? 'text';
+            // $order = isset($param['order']) ? intval($param['order']) : $index + 1;
+            $order = $param['order'];
+            if (empty($name)) continue;
 
-                if ($existingParameter) {
-                    $existingParameter->update([
-                        'type' => $param['type']
-                    ]);
-                } else {
-                    AdditionalParameter::create([
-                        'event_id' => $event->id,
-                        'name' => $param['name'],
-                        'type' => $param['type']
-                    ]);
-                }
+            // Verificar si ya existe un parámetro adicional con el mismo 'name' y 'event_id'
+            $existingParameter = AdditionalParameter::where('event_id', $event->id)
+                ->where('name', $name)
+                ->first();
+
+            if ($existingParameter) {
+                $existingParameter->update([
+                    'type' => $type,
+                    'order' => $order,
+                ]);
+            } else {
+                AdditionalParameter::create([
+                    'event_id' => $event->id,
+                    'name' => $name,
+                    'type' => $type,
+                    'order' => $order,
+                ]);
             }
         }
+
         return redirect()->route('event.index')->with('success', 'Parámetros de inscripción guardados correctamente.');
     }
 

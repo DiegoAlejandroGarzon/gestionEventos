@@ -303,14 +303,19 @@ class EventController extends Controller
     {
         // Busca el evento por el enlace público
         $event = Event::where('public_link', $public_link)->firstOrFail();
-        // Obtener parámetros adicionales desde la tabla, respetando el orden
-        $additionalParameters = json_decode($event->additionalParameters, true) ?? [];
+
+        // Traer parámetros adicionales desde la relación (ya ordenados)
+        $additionalParameters = $event->additionalParameters;
+
         $departments = Departament::all();
         $ticketTypes  = TicketType::where('event_id', $event->id)->get();
 
-        // Retorna la vista de registro, pasando el evento
-        // return view('event.public_registrationOrden', compact('event', 'departments', 'additionalParameters', 'ticketTypes'));
-        return view('event.public_registration', compact('event', 'departments', 'additionalParameters', 'ticketTypes'));
+        return view('event.public_registration', compact(
+            'event',
+            'departments',
+            'additionalParameters',
+            'ticketTypes'
+        ));
     }
 
     public function submitPublicRegistration(Request $request, $public_link)

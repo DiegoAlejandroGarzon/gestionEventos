@@ -106,10 +106,16 @@
                         <form action="{{ route('event.register.submit', $event->public_link) }}" method="POST">
                             @csrf
                             @php
-
+                                // Cargar datos crudos
                                 $selectedFieldsRaw = json_decode($event->registration_parameters, true) ?? [];
+
+                                // Ordenarlos por "order"
+                                usort($selectedFieldsRaw, function ($a, $b) {
+                                    return ($a['order'] ?? 999) <=> ($b['order'] ?? 999);
+                                });
+
+                                // EXTRAER SOLO NAMES en orden correcto
                                 $selectedFields = array_column($selectedFieldsRaw, 'name');
-                                // $selectedFields = json_decode($event->registration_parameters, true) ?? [];
                             @endphp
 
                             <!-- Checkbox cortesía -->
@@ -189,134 +195,9 @@
 
                             <!-- Grid de campos en 2 columnas (solo en XL) -->
                             <div class="mt-6 grid gap-4 xl:grid-cols-2">
-                                @if (in_array('name', $selectedFields))
-                                    <div>
-                                        <x-base.form-label for="name">Nombre</x-base.form-label>
-                                        <x-base.form-input id="name" name="name" type="text" class="w-full"
-                                            placeholder="Nombre" value="{{ old('name') }}" required />
-                                        @error('name')
-                                            <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                @endif
-
-                                @if (in_array('lastname', $selectedFields))
-                                    <div>
-                                        <x-base.form-label for="lastname">Apellidos</x-base.form-label>
-                                        <x-base.form-input id="lastname" name="lastname" type="text" class="w-full"
-                                            placeholder="Apellidos" value="{{ old('lastname') }}" required />
-                                        @error('lastname')
-                                            <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                @endif
-
-                                @if (in_array('type_document', $selectedFields))
-                                    <div>
-                                        <x-base.form-label for="type_document">Tipo de Documento</x-base.form-label>
-                                        <x-base.tom-select
-                                            class="w-full {{ $errors->has('type_document') ? 'border-red-500' : '' }}"
-                                            id="type_document" name="type_document">
-                                            <option value=""></option>
-                                            <option value="CC" {{ old('type_document') == 'CC' ? 'selected' : '' }}>
-                                                Cédula
-                                                de Ciudadanía</option>
-                                            <option value="TI" {{ old('type_document') == 'TI' ? 'selected' : '' }}>
-                                                Tarjeta
-                                                de Identidad</option>
-                                            <option value="CE" {{ old('type_document') == 'CE' ? 'selected' : '' }}>
-                                                Cédula
-                                                de Extranjería</option>
-                                            <option value="PAS" {{ old('type_document') == 'PAS' ? 'selected' : '' }}>
-                                                Pasaporte</option>
-                                        </x-base.tom-select>
-                                        @error('type_document')
-                                            <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                @endif
-
-                                @if (in_array('document_number', $selectedFields))
-                                    <div>
-                                        <x-base.form-label for="document_number">Número de Documento</x-base.form-label>
-                                        <x-base.form-input
-                                            class="w-full {{ $errors->has('document_number') ? 'border-red-500' : '' }}"
-                                            id="document_number" name="document_number" type="number"
-                                            placeholder="Número de Documento" value="{{ old('document_number') }}" />
-                                        @error('document_number')
-                                            <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                @endif
-
-                                @if (in_array('birth_date', $selectedFields))
-                                    <div>
-                                        <x-base.form-label for="birth_date">Fecha Nacimiento</x-base.form-label>
-                                        <x-base.form-input
-                                            class="w-full {{ $errors->has('birth_date') ? 'border-red-500' : '' }}"
-                                            id="birth_date" name="birth_date" type="date"
-                                            value="{{ old('birth_date') }}" />
-                                        @error('birth_date')
-                                            <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                @endif
-
-                                @if (in_array('phone', $selectedFields))
-                                    <div>
-                                        <x-base.form-label for="phone">Teléfono</x-base.form-label>
-                                        <x-base.form-input
-                                            class="w-full {{ $errors->has('phone') ? 'border-red-500' : '' }}"
-                                            id="phone" name="phone" type="text" placeholder="Teléfono"
-                                            value="{{ old('phone') }}" />
-                                        @error('phone')
-                                            <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                @endif
-
-                                @if (in_array('email', $selectedFields))
-                                    <div>
-                                        <x-base.form-label for="email">Email</x-base.form-label>
-                                        <x-base.form-input id="email" name="email" type="email" class="w-full"
-                                            placeholder="Correo Electrónico" value="{{ old('email') }}" required />
-                                        @error('email')
-                                            <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                @endif
-
-                                @if (in_array('city_id', $selectedFields))
-                                    <div>
-                                        <x-base.form-label for="department_id">Departamento</x-base.form-label>
-                                        <x-base.tom-select
-                                            class="w-full {{ $errors->has('department_id') ? 'border-red-500' : '' }}"
-                                            id="department_id" name="department_id" onchange="filterCities()">
-                                            <option></option>
-                                            @foreach ($departments as $department)
-                                                <option value="{{ $department->id }}"
-                                                    {{ old('department_id') == $department->id ? 'selected' : '' }}>
-                                                    {{ $department->code_dane }} - {{ $department->name }}
-                                                </option>
-                                            @endforeach
-                                        </x-base.tom-select>
-                                        @error('department_id')
-                                            <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-
-                                    <div>
-                                        <x-base.form-label for="city_id">Ciudad</x-base.form-label>
-                                        <x-base.tom-select
-                                            class="w-full {{ $errors->has('city_id') ? 'border-red-500' : '' }}"
-                                            id="city_id" name="city_id">
-                                            <option></option>
-                                        </x-base.tom-select>
-                                        @error('city_id')
-                                            <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                @endif
+                                @foreach ($selectedFields as $field)
+                                    @includeIf('event.componentsForm.' . $field)
+                                @endforeach
                             </div>
 
                             <!-- Parámetros adicionales -->
@@ -415,29 +296,6 @@
                     @endif
                     citySelect.refreshOptions(false);
                 }
-
-                function filterCities() {
-                    var departmentId = document.getElementById('department_id').value;
-                    var citySelect = document.getElementById('city_id');
-
-                    // Limpia el select de ciudades
-                    citySelect.innerHTML = '<option></option>';
-
-                    if (departmentId) {
-                        fetch('{{ route('getCitiesByDepartment', '') }}/' + departmentId)
-                            .then(response => response.json())
-                            .then(data => {
-                                // Verifica si 'data.cities' existe y es un array
-                                if (Array.isArray(data.cities)) {
-                                    updateCityOptions(data.cities);
-                                } else {
-                                    console.error('Invalid data format:', data);
-                                }
-                            })
-                            .catch(error => console.error('Error fetching cities:', error));
-                    }
-                }
-                filterCities();
             @endif
 
             function toggleCourtesyCodeInput() {
@@ -489,6 +347,7 @@
                 }
             }
 
+            @if ($event->allow_minors)
             // Mostrar opciones según la respuesta
             document.querySelectorAll('input[name="has_minors"]').forEach(radio => {
                 radio.addEventListener('change', function () {
@@ -524,7 +383,7 @@
                     `);
                 }
             });
-
+            @endif
         </script>
         @php
             $ticketsJs = [];

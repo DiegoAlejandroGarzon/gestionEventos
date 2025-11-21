@@ -50,6 +50,7 @@ class Event extends Model
 
     public function additionalParameters()
     {
-        return $this->hasMany(AdditionalParameter::class, 'event_id');
+        return $this->hasMany(AdditionalParameter::class, 'event_id')
+                    ->orderBy('order');
     }
 }

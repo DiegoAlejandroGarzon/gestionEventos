@@ -204,7 +204,7 @@
                     </div>
 
                     <!-- Tipos de Entradas -->
-                    <div class="mt-3 box intro-x mt-8 max-h-[90vh] px-1 xl:px-0 overflow-y-auto">
+                    {{-- <div class="mt-3 box intro-x mt-8 max-h-[90vh] px-1 xl:px-0 overflow-y-auto">
                         <x-base.form-label class="m-2">Tipos de Entradas</x-base.form-label>
                         <div id="ticket-types-container" class="m-2">
                             @foreach($event->ticketTypes as $index => $ticket)
@@ -303,7 +303,61 @@
                                 </div>
                             @endforeach
                         @endforeach
+                    </div> --}}
+                    <!-- GRID TIPOS DE ENTRADA -->
+                    <div class="mt-5 box p-5">
+                        <h3 class="font-bold text-lg mb-3">Tipos de Entrada</h3>
+
+                        <div class="overflow-x-auto">
+                            <table class="table table-striped table-bordered w-full text-sm">
+                                <thead>
+                                    <tr class="bg-slate-100">
+                                        <th>ID</th>
+                                        <th>Nombre</th>
+                                        <th>Aforo</th>
+                                        <th>Precio</th>
+                                        <th>Fecha</th>
+                                        <th>Hora Inicio</th>
+                                        <th>Hora Fin</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ticketTypeGrid">
+                                    @foreach($event->ticketTypes as $ticket)
+                                    <tr id="row_ticket_{{ $ticket->id }}">
+                                        <td>{{ $ticket->id }}</td>
+                                        <td>{{ $ticket->name }}</td>
+                                        <td>{{ $ticket->capacity }}</td>
+                                        <td>${{ number_format($ticket->price) }}</td>
+                                        <td>{{ $ticket->entry_date }}</td>
+                                        <td>{{ $ticket->entry_start_time }}</td>
+                                        <td>{{ $ticket->entry_end_time }}</td>
+                                        <td>
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-primary"
+                                                onclick="openTicketModal({{ $ticket->id }})">
+                                                Editar
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-danger"
+                                                onclick="deleteTicket({{ $ticket->id }})">
+                                                Eliminar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <button class="btn btn-success mt-4" type="button" onclick="openTicketModal(null)">
+                            Añadir Tipo de Entrada
+                        </button>
                     </div>
+
 
                     <!-- Descripción del Evento -->
                     <div class="mt-3">
@@ -570,6 +624,121 @@
         </div>
     </div>
 
+    <!-- MODAL EDITAR / CREAR TICKET -->
+    <div id="ticketTypeModal" class="modal" style="display:none;">
+        <div class="modal-content p-5 w-full lg:w-1/3 mx-auto bg-white rounded shadow-lg">
+
+            <h3 id="modalTitle" class="text-xl font-bold mb-4"></h3>
+
+            <input type="hidden" id="ticketId">
+
+            <label>Nombre</label>
+            <input id="ticketName" type="text" class="form-control mb-2">
+
+            <label>Aforo</label>
+            <input id="ticketCapacity" type="number" class="form-control mb-2">
+
+            <label>Precio</label>
+            <input id="ticketPrice" type="number" step="0.01" class="form-control mb-2">
+
+            <label>Fecha de ingreso</label>
+            <input id="ticketDate" type="date" class="form-control mb-2">
+
+            <label>Hora Inicio</label>
+            <input id="ticketStart" type="time" class="form-control mb-2">
+
+            <label>Hora Fin</label>
+            <input id="ticketEnd" type="time" class="form-control mb-2">
+
+            <div class="mt-4 text-right">
+                <button class="btn btn-secondary" onclick="closeTicketModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveTicketType()">Guardar</button>
+            </div>
+
+        </div>
+    </div>
+    <script>
+    // MODAL EDITAR / CREAR TICKET TIPO DE ENTRADA
+        function openTicketModal(id) {
+            const modal = document.getElementById('ticketTypeModal');
+            modal.style.display = 'block';
+
+            if (id) {
+                // EDITAR
+                const row = document.querySelector(`#row_ticket_${id}`).children;
+
+                document.getElementById('modalTitle').innerText = "Editar Tipo de Entrada";
+                document.getElementById('ticketId').value = id;
+                document.getElementById('ticketName').value = row[1].innerText;
+                document.getElementById('ticketCapacity').value = row[2].innerText;
+                document.getElementById('ticketPrice').value = row[3].innerText.replace('$','').replace('.','');
+                document.getElementById('ticketDate').value = row[4].innerText;
+                document.getElementById('ticketStart').value = row[5].innerText;
+                document.getElementById('ticketEnd').value = row[6].innerText;
+
+            } else {
+                // NUEVO
+                document.getElementById('modalTitle').innerText = "Añadir Tipo de Entrada";
+                document.getElementById('ticketId').value = "";
+                document.getElementById('ticketName').value = "";
+                document.getElementById('ticketCapacity').value = "";
+                document.getElementById('ticketPrice').value = "";
+                document.getElementById('ticketDate').value = "";
+                document.getElementById('ticketStart').value = "";
+                document.getElementById('ticketEnd').value = "";
+            }
+        }
+
+        function closeTicketModal() {
+            document.getElementById('ticketTypeModal').style.display = 'none';
+        }
+
+        function saveTicketType() {
+            const id = document.getElementById('ticketId').value;
+
+            const data = {
+                id: id,
+                name: document.getElementById('ticketName').value,
+                capacity: document.getElementById('ticketCapacity').value,
+                price: document.getElementById('ticketPrice').value,
+                entry_date: document.getElementById('ticketDate').value,
+                entry_start_time: document.getElementById('ticketStart').value,
+                entry_end_time: document.getElementById('ticketEnd').value,
+                event_id: {{ $event->id }},
+                _token: "{{ csrf_token() }}"
+            };
+
+            fetch("{{ route('event.ticketType.save') }}", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(data)
+            })
+            .then(r => r.json())
+            .then(response => {
+                if (response.success) {
+                    location.reload(); // opcional: puedes actualizar solo la fila
+                } else {
+                    alert("Error: " + response.message);
+                }
+            });
+        }
+
+        function deleteTicket(id) {
+            if (!confirm("¿Eliminar este tipo de entrada?")) return;
+
+            fetch("{{ route('event.ticketType.delete') }}", {
+                method: "DELETE",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    id: id,
+                    _token: "{{ csrf_token() }}"
+                })
+            })
+            .then(r => r.json())
+            .then(() => location.reload());
+        }
+
+    </script>
     <script>
         let ticketIndex = {{ $event->ticketTypes->count() }};
         @if (!is_null($event->additionalFields) && is_array(json_decode($event->additionalFields, true)))

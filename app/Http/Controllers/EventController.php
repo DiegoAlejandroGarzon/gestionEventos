@@ -13,6 +13,7 @@ use App\Models\TicketFeatures;
 use App\Models\TicketType;
 use App\Models\User;
 use App\Models\UserEventParameter;
+use App\Traits\LogsActivity;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,6 +24,7 @@ use Spatie\Permission\Models\Role;
 
 class EventController extends Controller
 {
+    use LogsActivity;
 
     public function index(Request $request)
     {
@@ -277,11 +279,54 @@ class EventController extends Controller
                 }
             }
 
+            $this->logActivity(
+                "Evento actualizado",
+                "events",
+                "success",
+                ["event" => $event]
+            );
+
             return redirect()->route('event.index')->with('success', 'Evento actualizado exitosamente.');
         } catch (\Exception $e) {
             // Capturar la excepción y redirigir con un mensaje de error
             return redirect()->route('event.edit', $id)->with('error', $e->getMessage());
         }
+    }
+
+    public function saveTicketType(Request $request)
+    {
+        try {
+            if ($request->id) {
+                // Editar
+                $ticket = TicketType::findOrFail($request->id);
+                $ticket->update($request->only([
+                    'name','capacity','price','entry_date','entry_start_time','entry_end_time'
+                ]));
+            } else {
+                // Crear
+                $ticket = TicketType::create([
+                    'event_id' => $request->event_id,
+                    'name' => $request->name,
+                    'capacity' => $request->capacity,
+                    'price' => $request->price,
+                    'entry_date' => $request->entry_date,
+                    'entry_start_time' => $request->entry_start_time,
+                    'entry_end_time' => $request->entry_end_time
+                ]);
+            }
+
+            return response()->json(['success' => true]);
+
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    public function deleteTicketType(Request $request)
+    {
+        TicketType::findOrFail($request->id)->delete();
+
+        return response()->json(['success' => true]);
     }
 
     public function generatePublicLink($id)

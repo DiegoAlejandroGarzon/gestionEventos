@@ -34,6 +34,7 @@ use App\Http\Controllers\PDFController;
 use App\Http\Controllers\PaypalController;
 use App\Http\Controllers\SeatController;
 use App\Http\Controllers\Chats\createManagementController;
+use App\Http\Controllers\LogController;
 
 Route::get('theme-switcher/{activeTheme}', [ThemeController::class, 'switch'])->name('theme-switcher');
 Route::get('layout-switcher/{activeLayout}', [LayoutController::class, 'switch'])->name('layout-switcher');
@@ -143,6 +144,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/event/findByDocumentStore', [EventController::class, 'findByDocumentStore'])->name('event.findByDocumentStore');
     Route::get('/buscar-cedulas', [EventController::class, 'buscarCedulas'])->name('event.buscarCedulas');
     Route::get('/event/getLocalRecords', [EventController::class, 'getLocalRecords'])->name('event.getLocalRecords');
+    Route::post('/ticket-type/save', [EventController::class, 'saveTicketType'])->name('event.ticketType.save');
+    Route::delete('/ticket-type/delete', [EventController::class, 'deleteTicketType'])->name('event.ticketType.delete');
 
 
     //ASISTENTS TO EVENT
@@ -209,6 +212,20 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/seats/upload-form/{idEvent}', [SeatController::class, 'showUploadForm'])->name('seats.uploadForm');
     Route::post('/seats/upload/{idEvent}', [SeatController::class, 'uploadExcel'])->name('seats.upload');
     Route::get('/get-event-assistants/{ticketTypeId}', [SeatController::class, 'getEventAssistants']);
+
+    Route::middleware(['admin'])->group(function () {
+        Route::get('/system/logs', [LogController::class, 'index'])->name('system.logs');
+    });
+
+    Route::get('/test-log', function () {
+        \Log::error('Probando log desde la ruta /test-log', [
+            'usuario' => auth()->id(),
+            'test' => true
+        ]);
+
+        return "Log generado, verifica la tabla system_logs.";
+    });
+
 });
 
 Route::controller(PageController::class)->group(function () {

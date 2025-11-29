@@ -238,7 +238,12 @@ class EventAssistantController extends Controller
                 ]);
             }
         }
-
+        $this->logActivity(
+            "Se registró Asistentes asignados al evento ID: {$eventId}",
+            "assistants",
+            "success",
+            // ["eventAssistant_id" => $eventAssistant->id]
+        );
         // Redirigir con un mensaje de éxito
         return redirect()->route('eventAssistant.index', $eventId)
         ->with('success', 'Asistentes asignados exitosamente.');
@@ -341,6 +346,12 @@ class EventAssistantController extends Controller
         if (isset($user)) {
             // Actualizar el usuario existente
             $user->update($validatedData);
+            $this->logActivity(
+                "usuario actualizado",
+                "users",
+                "success",
+                ["user" => $user->id]
+            );
         } else {
             // Si no existe, crear un nuevo usuario
             $userFillableColumns = (new User())->getFillable(); // Obtener las columnas permitidas
@@ -353,6 +364,12 @@ class EventAssistantController extends Controller
             }
             $createData['status'] = false;
             $user = User::create($createData);
+            $this->logActivity(
+                "Se registró un nuevo asistente",
+                "assistants",
+                "success",
+                ["user" => $user->id]
+            );
         }
 
         // Verificar si el usuario tiene el rol de 'assistant', si no, asignarlo
@@ -474,6 +491,12 @@ class EventAssistantController extends Controller
                 'ticket_type_id' => $request['id_ticket'] ?? null,
                 'guardian_id' => $guardianId,
             ]
+        );
+        $this->logActivity(
+            "Actualizar o crear el registro",
+            "event_assistant",
+            "success",
+            ["eventAssistant" => $eventAssistant]
         );
 
         // Obtener los parámetros adicionales definidos para el evento

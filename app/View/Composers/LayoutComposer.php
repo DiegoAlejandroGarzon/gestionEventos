@@ -28,6 +28,6 @@ class LayoutComposer
             return request()->query('active-layout');
         }
 
-        return session()->has('activeLayout') ? session('activeLayout') : "side-menu";
+        return session()->has('activeLayout') ? "side-menu" : "side-menu";
     }
 }

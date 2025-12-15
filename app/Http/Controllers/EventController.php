@@ -905,4 +905,12 @@ class EventController extends Controller
         ]);
     }
 
+    public function getEventsForCalendar(Request $request)
+    {
+        $events = Event::orderBy('event_date')
+            ->get();
+
+        return view('event.calendar', compact('events'));
+        // return response()->json($calendarEvents);
+    }
 }

@@ -20,7 +20,7 @@
                 >
                     <img
                         class="w-6"
-                        src="{{ Vite::asset('resources/images/logo.svg') }}"
+                        src="{{ Vite::asset('resources/images/icono.ico') }}"
                         alt="Midone - Tailwind Admin Dashboard Template"
                     />
                     <span class="ml-3 text-lg text-white"> FlorezEventos </span>

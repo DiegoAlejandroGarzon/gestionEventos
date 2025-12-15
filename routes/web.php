@@ -34,6 +34,7 @@ use App\Http\Controllers\PDFController;
 use App\Http\Controllers\PaypalController;
 use App\Http\Controllers\SeatController;
 use App\Http\Controllers\Chats\createManagementController;
+use App\Http\Controllers\EventCalendarController;
 use App\Http\Controllers\LogController;
 
 Route::get('theme-switcher/{activeTheme}', [ThemeController::class, 'switch'])->name('theme-switcher');
@@ -147,6 +148,10 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/ticket-type/save', [EventController::class, 'saveTicketType'])->name('event.ticketType.save');
     Route::delete('/ticket-type/delete', [EventController::class, 'deleteTicketType'])->name('event.ticketType.delete');
 
+    Route::get('/calendar-events', [EventController::class, 'getEventsForCalendar'])->name('event.calendar');
+    Route::get('/calendar/events', [EventCalendarController::class, 'index'])
+    ->name('calendar.events');
+
 
     //ASISTENTS TO EVENT
     Route::get('/assistants/{idEvent}', [EventAssistantController::class, 'index'])->name('eventAssistant.index');
@@ -201,10 +206,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::get('/api/check-job-status/{idEvent}', [CouponController::class, 'checkJobStatusjob']);
     Route::get('/coupons/{idEvent}/xls', [CouponController::class, 'generateExcel'])->name('coupons.excel');
     Route::delete('/coupons/{id}', [CouponController::class, 'destroy'])->name('coupon.delete');
-
     //SELECTS
-
-
     //SEATS
     Route::get('ticket-types/{idEvent}/seats', [SeatController::class, 'index'])->name('seats.index');
     Route::post('seats/assign/{seat}', [SeatController::class, 'assignSeat'])->name('seats.assign');

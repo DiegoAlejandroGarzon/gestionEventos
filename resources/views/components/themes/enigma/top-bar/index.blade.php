@@ -20,7 +20,7 @@
         >
             <img
                 class="w-6"
-                src="{{ Vite::asset('resources/images/logo.svg') }}"
+                src="{{ Vite::asset('resources/images/icono.ico') }}"
                 alt="Enigma Tailwind HTML Admin Template"
             />
             <span @class([

@@ -12,7 +12,7 @@
         >
             <img
                 class="w-6"
-                src="{{ Vite::asset('resources/images/logo.svg') }}"
+                src="{{ Vite::asset('resources/images/icono.ico') }}"
                 alt="Midone - Tailwind Admin Dashboard Template"
             />
         </a>

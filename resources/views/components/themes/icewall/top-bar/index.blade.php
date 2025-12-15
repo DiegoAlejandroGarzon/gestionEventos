@@ -9,7 +9,7 @@
         >
             <img
                 class="w-6"
-                src="{{ Vite::asset('resources/images/logo.svg') }}"
+                src="{{ Vite::asset('resources/images/icono.ico') }}"
                 alt="Icewall Tailwind Admin Dashboard Template"
             />
             <span class="ml-3 text-lg text-white"> Icewall </span>

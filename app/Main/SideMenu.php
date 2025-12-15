@@ -10,6 +10,12 @@ class SideMenu
     public static function menu(): array
     {
         $menu = [
+
+            'calendario' => [
+                'icon' => 'trello',
+                'route_name' => 'event.calendar',
+                'title' => 'Calendario'
+            ],
             'event.findByDocument' => [
                 'icon' => 'search',
                 'route_name' => 'event.findByDocument',
@@ -47,17 +53,17 @@ class SideMenu
                     ]
                 ]
             ],
-            'Pagos' => [
-                'icon' => 'file-text',
-                'title' => 'Pagos',
-                'sub_menu' => [
-                    'checkout.paypal' => [
-                        'icon' => 'file-text',
-                        'route_name' => 'checkout.paypal',
-                        'title' => 'Paypal'
-                    ]
-                ]
-            ],
+            // 'Pagos' => [
+            //     'icon' => 'file-text',
+            //     'title' => 'Pagos',
+            //     'sub_menu' => [
+            //         'checkout.paypal' => [
+            //             'icon' => 'file-text',
+            //             'route_name' => 'checkout.paypal',
+            //             'title' => 'Paypal'
+            //         ]
+            //     ]
+            // ],
             'Configuraciones' => [
                 'icon' => 'file-text',
                 'title' => 'Configuraciones',
@@ -81,7 +87,7 @@ class SideMenu
             ],
         ];
         // Verificar el entorno y agregar el menú de configuraciones solo si APP_ENV es 'local'
-        if (env('APP_ENV') === 'local' || 1 == 1) {
+        if (env('APP_ENV') === 'local') {
             $menu['divider'] = "divider";
             $menu['dashboard'] = [
                 'icon' => 'home',

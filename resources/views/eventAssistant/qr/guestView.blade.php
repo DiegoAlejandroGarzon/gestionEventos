@@ -14,7 +14,7 @@
             <div class="block grid-cols-2 gap-4 xl:grid">
                 <!-- BEGIN: Event Info -->
                 <div class="hidden min-h-screen flex-col xl:flex">
-                    <img class="w-6" src="{{ Vite::asset('resources/images/logo.svg') }}" alt="" />
+                    <img class="w-6" src="{{ Vite::asset('resources/images/icono.ico') }}" alt="" />
                     <span class="ml-3 text-lg text-white"> FlorezEventos </span>
                     <div class="my-auto">
                         <img class="-intro-x -mt-16 w-1/2" src="{{ Vite::asset('resources/images/illustration.svg') }}" alt="" />

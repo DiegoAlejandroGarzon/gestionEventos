@@ -67,7 +67,7 @@
                     <!-- Contenido textual encima de la capa -->
                     <div class="relative z-10 p-8">
                         <div class="flex items-center justify-center mb-6">
-                            <img class="w-10" src="{{ Vite::asset('resources/images/logo.svg') }}" alt="Logo" />
+                            <img class="w-10" src="{{ Vite::asset('resources/images/icono.ico') }}" alt="Logo" />
                             <span class="ml-3 text-lg font-semibold">FlorezEventos</span>
                         </div>
 

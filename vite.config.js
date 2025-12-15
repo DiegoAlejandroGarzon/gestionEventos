@@ -110,6 +110,7 @@ export default defineConfig({
                 // JS Base Components
                 "resources/js/components/base/theme-color.js",
                 "resources/js/components/base/calendar/calendar.js",
+                "resources/js/components/base/calendar/calendar-events.js",
                 "resources/js/components/base/calendar/draggable.js",
                 "resources/js/components/base/balloon-block-editor.js",
                 "resources/js/components/base/balloon-editor.js",

@@ -60,7 +60,7 @@
                     <div class="relative z-10 p-8">
                         <div class="flex items-center justify-center mb-6">
                             <img class="w-10" src="{{ Vite::asset('resources/images/logo.svg') }}" alt="Logo" />
-                            <span class="ml-3 text-lg font-semibold">ValiApp</span>
+                            <span class="ml-3 text-lg font-semibold">FlorezEventos</span>
                         </div>
 
                         <h1 class="text-4xl font-bold mb-4 leading-tight">

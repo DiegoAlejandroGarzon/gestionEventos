@@ -123,8 +123,14 @@
                                 onchange="filterCities()"
                             >
                                 <option></option>
-                                @foreach ($departments as $department)
+                                {{-- @foreach ($departments as $department)
                                     <option value="{{$department->id}}" {{ old('department_id') == $department->id ? 'selected' : '' }}>{{ $department->code_dane }} - {{ $department->name }}</option>
+                                @endforeach --}}
+                                @foreach ($departments as $department)
+                                    <option value="{{$department->id}}"
+                                        {{ 11 == $department->id ? 'selected' : '' }}>
+                                        {{ $department->name }}</option>
+
                                 @endforeach
                             </x-base.tom-select>
                             @error('department_id')
@@ -140,7 +146,7 @@
                                 id="city_id"
                                 name="city_id"
                             >
-                                <option></option>
+                                <option value="493">GIRARDOT</option>
                             </x-base.tom-select>
                             @error('city_id')
                                 <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
@@ -212,7 +218,7 @@
                         >
                             <option></option>
                             @foreach (config('statusEvento') as $label => $valor)
-                                <option value="{{$valor}}" {{ old('status') == $valor ? 'selected' : '' }}>{{ $label }}</option>
+                                <option value="{{$valor}}" {{ 2 == $valor ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
                         </x-base.tom-select>
                         @error('status')
@@ -313,7 +319,7 @@
                         @enderror
                     </div>
                     <!-- Enviar correo al inscribir -->
-                    <div class="mt-3 box p-3">
+                    {{-- <div class="mt-3 box p-3">
                         <x-base.form-label for="send_email">¿Enviar correo al inscribir?</x-base.form-label>
                         <div class="flex items-center space-x-2">
                             <label class="flex items-center cursor-pointer">
@@ -331,10 +337,10 @@
                         @error('send_email')
                             <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
                         @enderror
-                    </div>
+                    </div> --}}
 
                     <!-- habilitar modo offline al validar información -->
-                    <div class="mt-3 box p-3">
+                    {{-- <div class="mt-3 box p-3">
                         <x-base.form-label for="mode_offline">¿Habilitar modo offline al validar información?</x-base.form-label>
                         <div class="flex items-center space-x-2">
                             <label class="flex items-center cursor-pointer">
@@ -352,7 +358,7 @@
                         @error('mode_offline')
                             <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
                         @enderror
-                    </div>
+                    </div> --}}
                     <!-- Campos Adicionales -->
                     <div class="mt-3">
                         <x-base.form-label>Campos Adicionales</x-base.form-label>
@@ -578,7 +584,7 @@
                     .catch(error => console.error('Error fetching cities:', error));
             }
         }
-        filterCities();
+        // filterCities();
         document.addEventListener('change', function(e) {
             if (e.target && e.target.type === 'date' && e.target.name.includes('date_entry')) {
                 const eventStart = document.getElementById('event_date').value;

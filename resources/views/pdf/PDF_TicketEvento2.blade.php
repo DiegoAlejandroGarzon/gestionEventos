@@ -78,11 +78,25 @@
             <div class="section">
                 <h2>Información del asistente</h2>
                 @php
-                    $selectedFields = json_decode($eventAssistant->event->registration_parameters, true) ?? [];
+                    $selectedFields = collect(json_decode($eventAssistant->event->registration_parameters, true) ?? [])->sortBy('order');
                     $additionalParameters = json_decode($eventAssistant->event->additionalParameters, true) ?? [];
+                        
                 @endphp
+
                 @foreach($selectedFields as $field)
-                    <p><strong>{{ config("traductorColumnasUsers.$field", ucfirst(str_replace('_', ' ', $field))) }}</strong>: {{ $eventAssistant->user->$field }}</p>
+                    @php
+                        $fieldName = $field['name'];
+                        $value = $eventAssistant->user->{$fieldName} ?? null;
+                    @endphp
+
+                    @if(!is_null($value))
+                        <p>
+                            <strong>
+                                {{ config("traductorColumnasUsers.$fieldName", ucfirst(str_replace('_', ' ', $fieldName))) }}
+                            </strong>:
+                            {{ $value }}
+                        </p>
+                    @endif
                 @endforeach
                 @foreach($additionalParameters as $parameter)
                     @php

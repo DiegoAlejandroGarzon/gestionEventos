@@ -346,20 +346,22 @@ class EventController extends Controller
 
     public function showPublicRegistrationForm($public_link)
     {
-        // Busca el evento por el enlace público
         $event = Event::where('public_link', $public_link)->firstOrFail();
 
-        // Traer parámetros adicionales desde la relación (ya ordenados)
         $additionalParameters = $event->additionalParameters;
-
         $departments = Departament::all();
-        $ticketTypes  = TicketType::where('event_id', $event->id)->get();
+        $ticketTypes = TicketType::where('event_id', $event->id)->get();
+        $hasTicketTypes = $ticketTypes->isNotEmpty();
+        // Ajusta esto según tu relación real de cupones
+        $hasCourtesyCoupons = Coupon::where('event_id', $event->id)->exists();
 
         return view('event.public_registration', compact(
             'event',
             'departments',
             'additionalParameters',
-            'ticketTypes'
+            'ticketTypes',
+            'hasTicketTypes',
+            'hasCourtesyCoupons'
         ));
     }
 
@@ -474,18 +476,22 @@ class EventController extends Controller
         // 🔹 Verificar capacidad del tipo de ticket
         $ticketType = TicketType::find($request->id_ticket);
 
-        if (!$ticketType) {
+        $ticketTypesCollection = TicketType::where('event_id', $event->id)->get();
+        $hasTicketTypes = $ticketTypesCollection->isNotEmpty();
+        if (!$ticketType && $hasTicketTypes) {
             return redirect()->back()->with('error', 'El tipo de entrada seleccionado no es válido.');
         }
 
-        // Verificar si ya está inscrito en este evento con el mismo tipo de ticket
-        $alreadyRegisteredSameTicket = EventAssistant::where('event_id', $event->id)
-            ->where('user_id', $user->id)
-            ->where('ticket_type_id', $ticketType->id)
-            ->exists();
+        if($hasTicketTypes){
+            // Verificar si ya está inscrito en este evento con el mismo tipo de ticket
+            $alreadyRegisteredSameTicket = EventAssistant::where('event_id', $event->id)
+                ->where('user_id', $user->id)
+                ->where('ticket_type_id', $ticketType->id)
+                ->exists();
 
-        if ($alreadyRegisteredSameTicket) {
-            return redirect()->back()->with('error', 'El usuario ya está inscrito en este evento con el mismo tipo de entrada.');
+            if ($alreadyRegisteredSameTicket) {
+                return redirect()->back()->with('error', 'El usuario ya está inscrito en este evento con el mismo tipo de entrada.');
+            }
         }
 
         // Contar asistentes adultos inscritos en este tipo de ticket
@@ -515,7 +521,7 @@ class EventController extends Controller
         $eventAssistant = EventAssistant::create([
             'event_id' => $event->id,
             'user_id' => $user->id,
-            'ticket_type_id' => $ticketType->id,
+            'ticket_type_id' => $ticketType->id ?? null,
             'has_entered' => false,
             'guardian_id' => $guardianId,
         ]);

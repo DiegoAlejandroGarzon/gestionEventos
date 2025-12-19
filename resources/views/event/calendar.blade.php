@@ -187,7 +187,7 @@
         </div> --}}
         <!-- END: Calendar Side Menu -->
         <!-- BEGIN: Calendar Content -->
-        <div class="col-span-12 xl:col-span-8 2xl:col-span-12">
+        <div class="col-span-12 xl:col-span-12 2xl:col-span-12">
             <x-calendar-events
                 data-events-url="{{ route('calendar.events') }}"
                 data-locale="es"

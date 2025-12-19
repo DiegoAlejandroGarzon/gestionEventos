@@ -117,7 +117,7 @@
                                 // EXTRAER SOLO NAMES en orden correcto
                                 $selectedFields = array_column($selectedFieldsRaw, 'name');
                             @endphp
-
+                            @if($hasCourtesyCoupons)
                             <!-- Checkbox cortesía -->
                             <div class="mt-3">
                                 <x-base.form-label for="courtesy_code_checkbox">¿Tienes un Cupón de
@@ -133,7 +133,8 @@
                                     oninput="checkCourtesyCode()" />
                                 <div id="courtesy_code_message" class="text-red-500 text-sm mt-1"></div>
                             </div>
-
+                            @endif
+                            @if($hasTicketTypes)
                             <!-- Selector de Fecha -->
                             <div class="mt-3">
                                 <x-base.form-label for="filter_date">Seleccionar Fecha</x-base.form-label>
@@ -192,7 +193,7 @@
                                     <div class="text-red-500 text-sm mt-1">{{ $message }}</div>
                                 @enderror
                             </div>
-
+                            @endif
                             <!-- Grid de campos en 2 columnas (solo en XL) -->
                             <div class="mt-6 grid gap-4 xl:grid-cols-2">
                                 @foreach ($selectedFields as $field)
